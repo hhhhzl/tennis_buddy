@@ -100,10 +100,9 @@ RUN useradd -ms /bin/bash $USER && echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/s
 WORKDIR /workspace/tennisbuddy
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/start-vnc.sh /usr/local/bin/start-vnc.sh
-# COPY scripts/start-gazebo.sh /workspace/start-gazebo.sh
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-COPY ..
+COPY .. /workspace/tennisbuddy
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/start-vnc.sh
 
 USER $USER
