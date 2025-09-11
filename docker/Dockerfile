@@ -97,11 +97,13 @@ RUN if [ "$SIM" = "isaac" ]; then \
 ENV USER=developer
 RUN useradd -ms /bin/bash $USER && echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-WORKDIR /workspace
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY start-vnc.sh /usr/local/bin/start-vnc.sh
-COPY start-gazebo.sh /workspace/start-gazebo.sh
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+WORKDIR /workspace/tennisbuddy
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/start-vnc.sh /usr/local/bin/start-vnc.sh
+# COPY scripts/start-gazebo.sh /workspace/start-gazebo.sh
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+COPY ..
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/start-vnc.sh
 
 USER $USER
