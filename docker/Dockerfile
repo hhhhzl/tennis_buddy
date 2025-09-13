@@ -91,12 +91,6 @@ RUN if [ "$SIM" = "isaac" ]; then \
       echo "[INFO] Expect BASE_IMAGE=nvcr.io/nvidia/isaac-sim:<tag>, and run with --gpus all"; \
     fi
 
-############################
-# User
-############################
-ENV USER=developer
-RUN useradd -ms /bin/bash $USER && echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
 WORKDIR /workspace/tennisbuddy
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/start-vnc.sh /usr/local/bin/start-vnc.sh
@@ -105,6 +99,13 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY .. /workspace/tennisbuddy
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/start-vnc.sh
 
-USER $USER
+############################
+# User
+############################
+# ENV USER=developer
+# RUN useradd -ms /bin/bash $USER && echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER root
+SHELL ["/bin/bash", "-c"]
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/bin/bash"]

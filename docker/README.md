@@ -1,10 +1,6 @@
 ## Docker Usage
 
----
-
 ### Install (Ros2 + Gazebo)
-
----
 
 #### Support
  - MacOS (Apple Silicon)

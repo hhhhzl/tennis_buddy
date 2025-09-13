@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>roverrobotics_description</name>
+  <name>tennisbuddy_description</name>
   <version>1.0.2</version>
   <description>Rover URDF and Robot Descriptions</description>
   <maintainer email="jack@roverrobotics.com">Jack Rivera</maintainer>

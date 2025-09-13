@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export USER="${USER:-developer}"
-export HOME="${HOME:-/home/${USER}}"
-export DISPLAY="${DISPLAY:-:1}"
+set +u
+[ -f "/opt/ros/humble/setup.bash" ] && source /opt/ros/humble/setup.bash
+set -u
 
-export SUP_DIR="${HOME}/.supervisor"
+#export USER="${USER:-developer}"
+
+export DISPLAY="${DISPLAY:-:1}"
+export SUP_DIR="/root/.supervisor"
 export SUP_CONF="/etc/supervisor/conf.d/supervisord.conf"
 mkdir -p "${SUP_DIR}"
 
