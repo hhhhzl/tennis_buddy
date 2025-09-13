@@ -13,7 +13,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 
 setup(
-    name='tennis buddy',
+    name='tennisbuddy',
     version="0.0.1",
     description='',
     packages=find_packages(),

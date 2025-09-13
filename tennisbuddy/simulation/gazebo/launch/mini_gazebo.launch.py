@@ -13,8 +13,11 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     # Create the launch configuration variables
     use_sim_time = LaunchConfiguration('use_sim_time')
-    urdf = os.path.join(get_package_share_directory(
-        'roverrobotics_description'), 'urdf', 'mini.urdf')
+
+    desc_share = get_package_share_directory('tennisbuddy_description')
+    gz_share = get_package_share_directory('tennisbuddy_gazebo')
+
+    urdf = os.path.join(desc_share, 'urdf', 'mini.urdf')
     world = LaunchConfiguration('world')
 
     robot_desc = ParameterValue(Command(['xacro ', urdf]),
@@ -27,11 +30,12 @@ def generate_launch_description():
 
     declare_world_cmd = DeclareLaunchArgument(
         'world',
-        default_value='maze.sdf',
+        default_value='court.sdf',
         description='World file to use in Gazebo')
 
     gz_world_arg = PathJoinSubstitution([
-        get_package_share_directory('roverrobotics_gazebo'), 'worlds', world])
+        gz_share, 'worlds', world
+    ])
 
     # Include the gz sim launch file
     gz_sim_share = get_package_share_directory("ros_gz_sim")
@@ -51,6 +55,7 @@ def generate_launch_description():
             "-name", "rover_mini",
             "-allow_renaming", "true",
             "-z", "0.1",
+            "-x", "-5"
         ]
     )
 
