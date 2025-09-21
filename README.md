@@ -30,6 +30,6 @@ source install/setup.sh
 ## Simulation
 Run in Gazebo:
 ```commandline
-ros2 launch tennisbuddy_gazebo mini_gazebo.launch.py world:=court.sdf
+ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf
 ```
 ![Running Tennisbuddy in Gazebo](./assets/gazebo_sim.png)
