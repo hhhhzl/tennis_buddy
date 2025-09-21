@@ -30,7 +30,7 @@ find_package(sensor_msgs REQUIRED)
 
 
 
-add_executable(roverrobotics_driver
+add_executable(ros2_control
   src/ros2_control.cpp
   library/librover/src/protocol_pro.cpp
   library/librover/src/comm_serial.cpp
@@ -65,7 +65,7 @@ ament_target_dependencies(ros2_control
 
 install(DIRECTORY
   launch
-  config
+  configs
   maps
   DESTINATION share/${PROJECT_NAME})
 
