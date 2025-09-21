@@ -1,0 +1,14 @@
+sources:
+  frames: {
+    map: map,
+    odom: odom,
+    base: base_link
+  }
+  topics:
+    odom: /odometry/filtered        # or /odom
+    balls: /ball_positions
+    planned_path: /planned_path
+    cmd_vel: /cmd_vel
+  nav2:
+    navigate_to_pose: navigate_to_pose     # bt_navigator action
+    follow_path: follow_path               # controller_server action
