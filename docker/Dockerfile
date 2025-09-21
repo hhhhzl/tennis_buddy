@@ -52,6 +52,8 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-joint-state-publisher \
     ros-${ROS_DISTRO}-xacro \
     ros-${ROS_DISTRO}-joy-linux \
+    ros-${ROS_DISTRO}-ros-gz-interfaces \
+    ros-${ROS_DISTRO}-ros-gz-bridge \
     python3-colcon-common-extensions \
  && rm -rf /var/lib/apt/lists/*
 

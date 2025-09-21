@@ -18,7 +18,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time')
     use_rviz = LaunchConfiguration('use_rviz')
     start_ekf = LaunchConfiguration('start_ekf')
-    start_driver = LaunchConfiguration('start_driver')  # real：rover driver；Simulation False
+    start_driver = LaunchConfiguration('start_driver')  # real：rover launch；Simulation False
     model = LaunchConfiguration('model')  # URDF/Xacro
     ros2_ctrl_config = LaunchConfiguration('ros2_ctrl_config')  # ros2_control yaml
     ekf_config = LaunchConfiguration('ekf_config')
@@ -28,7 +28,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time', default_value='true', description='Use Gazebo/Sim time'),
         DeclareLaunchArgument('use_rviz', default_value='false', description='Start RViz for TF/odom'),
         DeclareLaunchArgument('start_ekf', default_value='true', description='Start robot_localization EKF'),
-        DeclareLaunchArgument('start_driver', default_value='false', description='Start rover driver (real HW)'),
+        DeclareLaunchArgument('start_driver', default_value='false', description='Start rover launch (real HW)'),
         DeclareLaunchArgument('start_accessories', default_value='false', description='Start accessories.launch.py'),
         DeclareLaunchArgument(
             'model',

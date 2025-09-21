@@ -1,38 +1,28 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>tennisbuddy_planning</name>
+  <name>tennisbuddy_perception</name>
   <version>0.1.0</version>
-  <description>Planning stack for the TennisBuddy robot: tennisbuddy (own) planner/tracker and Nav2 integrations (goal/ path bridge).</description>
-
+  <description>Perception helpers</description>
   <maintainer email="hectorh@andrew.cmu.edu">Hector</maintainer>
   <license>Apache-2.0</license>
 
-  <!-- Build tools -->
+   <!-- Build tools -->
   <buildtool_depend>ament_cmake</buildtool_depend>
 <!--  <buildtool_depend>ament_python</buildtool_depend>-->
 
   <!-- Python runtime -->
   <exec_depend>python3</exec_depend>
   <exec_depend>setuptools</exec_depend>
-
-  <!-- ROS2 core -->
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>rclpy_action</exec_depend>
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
 
-  <!-- Messages -->
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>nav2_msgs</exec_depend>
-
-  <!-- TF / utils (optional but common) -->
   <exec_depend>tf2_ros</exec_depend>
-
-  <!-- Nav2 bringup & helpers used by our launch files -->
-  <exec_depend>nav2_common</exec_depend>
-  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+  <exec_depend>ros_gz_interfaces</exec_depend>   <!-- SpawnEntity srv -->
+  <exec_depend>ros_gz_bridge</exec_depend>
 
   <!-- Localization / Mapping used by our navigation_launch include -->
   <exec_depend>robot_localization</exec_depend>

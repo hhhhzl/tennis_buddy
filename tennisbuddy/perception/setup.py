@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 from pathlib import Path
 
-ros_pkg_name = 'tennisbuddy_planning'
+ros_pkg_name = 'tennisbuddy_perception'
 py_pkg_root = 'src'
-py_pkg_name = 'planning'
+py_pkg_name = 'perception'
 
 Path('resource').mkdir(exist_ok=True)
 Path(f'resource/{ros_pkg_name}').touch(exist_ok=True)
@@ -16,9 +16,8 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', [f'resource/{ros_pkg_name}']),
         ('share/' + ros_pkg_name + '/launch', [
-            'launch/planning_tennisbuddy.launch.py',
-            'launch/planning_nav2_path.launch.py',
-            'launch/planning_nav2_goal.launch.py',
+            'launch/ball_spawner.launch.py',
+            'launch/perception_gazebo_gt.launch.py',
         ]),
         ('share/' + ros_pkg_name + '/configs', []),
         ('share/' + ros_pkg_name, ['package.xml']),
@@ -28,10 +27,9 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'planner_node = planning.nodes.planner_node:main',
-            'trajectory_tracker = planning.nodes.trajectory_tracker:main',
-            'nav2_goal_pusher = planning.nodes.nav2_goal_pusher:main',
-            'nav2_path_bridge = planning.nodes.nav2_path_bridge:main',
+            'ball_spawner = perception.nodes.ball_spawner:main',
+            'ball_groundtruth = perception.nodes.ball_groundtruth:main',
+            'mock_spawn_service = perception.nodes.mock_spawn_service:main'
         ],
     },
 )
