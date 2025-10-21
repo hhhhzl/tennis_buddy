@@ -116,7 +116,7 @@ def generate_launch_description():
         'log_level', default_value='info',
         description='log level')
 
-    rl_launch_path = os.path.join(get_package_share_directory("roverrobotics_driver"), 'launch',
+    rl_launch_path = os.path.join(get_package_share_directory("tennisbuddy_perception"), 'launch',
                                   'robot_localizer.launch.py')
     robot_localizer_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rl_launch_path),
                                                       launch_arguments={'use_sim_time': use_sim_time}.items())
@@ -172,8 +172,8 @@ def generate_launch_description():
     # Slam toolbox stuff
     declare_slam_params_file_cmd = DeclareLaunchArgument(
         'slam_params_file',
-        default_value=os.path.join(get_package_share_directory("roverrobotics_driver"),
-                                   'config/slam_configs', 'mapper_params_localization.yaml'),
+        default_value=os.path.join(get_package_share_directory("tennisbuddy_perception"),
+                                   'configs/slam_configs', 'mapper_params_localization.yaml'),
         description='Full path to the ROS2 parameters file to use for the slam_toolbox node')
 
     declare_slam_map_file_cmd = DeclareLaunchArgument(
@@ -182,7 +182,7 @@ def generate_launch_description():
         description='Full path to the ROS2 parameters file to use for the slam_toolbox node')
 
     map_file_arg = PathJoinSubstitution([
-        get_package_share_directory('roverrobotics_driver'), 'maps', map_file])
+        get_package_share_directory('tennisbuddy_ros2_control'), 'maps', map_file])
 
     start_async_slam_toolbox_node = Node(
         parameters=[
