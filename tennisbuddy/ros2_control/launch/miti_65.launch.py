@@ -26,9 +26,9 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     robot_driver = Node(
-        package='ros2_control',
-        name='ros2_control',
-        executable='ros2_control',
+        package='tennisbuddy_ros2_control',
+        name='tennisbuddy_ros2_control',
+        executable='tennisbuddy_ros2_control',
         parameters=[hardware_config],
         output='screen',
         respawn=True,
