@@ -1,0 +1,1 @@
+python3;setuptools;rclpy;rclpy_action;launch;launch_ros;ament_index_python;geometry_msgs;nav_msgs;nav2_msgs;tf2_ros;nav2_common;nav2_bringup;robot_localization;slam_toolbox;ament_lint_auto;ament_lint_common

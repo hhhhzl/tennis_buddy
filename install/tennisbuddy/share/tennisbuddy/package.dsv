@@ -1,0 +1,3 @@
+source;share/tennisbuddy/hook/pythonpath.ps1
+source;share/tennisbuddy/hook/pythonpath.dsv
+source;share/tennisbuddy/hook/pythonpath.sh

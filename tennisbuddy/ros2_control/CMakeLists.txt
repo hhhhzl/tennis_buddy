@@ -30,8 +30,8 @@ find_package(sensor_msgs REQUIRED)
 
 
 
-add_executable(ros2_control
-  src/ros2_control.cpp
+add_executable(tennisbuddy_ros2_control
+  src/tennisbuddy_ros2_control.cpp
   library/librover/src/protocol_pro.cpp
   library/librover/src/comm_serial.cpp
   library/librover/src/utils.cpp
@@ -42,17 +42,17 @@ add_executable(ros2_control
   library/librover/src/protocol_zero_2.cpp
   library/librover/src/differential_robot.cpp)
 
-#target_link_libraries(ros2_control librover)
+#target_link_libraries(tennisbuddy_ros2_control librover)
 
 
 
-target_include_directories(ros2_control
+target_include_directories(tennisbuddy_ros2_control
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/library/librover/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(ros2_control
+ament_target_dependencies(tennisbuddy_ros2_control
   rclcpp
   std_msgs
   geometry_msgs
@@ -70,7 +70,7 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME})
 
 install(TARGETS
-  ros2_control
+  tennisbuddy_ros2_control
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
