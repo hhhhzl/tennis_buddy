@@ -20,7 +20,7 @@ def generate_launch_description():
     start_ekf = LaunchConfiguration('start_ekf')
     start_driver = LaunchConfiguration('start_driver')  # real：rover launch；Simulation False
     model = LaunchConfiguration('model')  # URDF/Xacro
-    ros2_ctrl_config = LaunchConfiguration('ros2_ctrl_config')  # ros2_control yaml
+    ros2_ctrl_config = LaunchConfiguration('ros2_ctrl_config')  # tennisbuddy_ros2_control yaml
     ekf_config = LaunchConfiguration('ekf_config')
     start_accessories = LaunchConfiguration('start_accessories')  # ）
 
@@ -37,7 +37,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'ros2_ctrl_config',
             default_value=str(get_package_share_directory('tennisbuddy_ros2_control') + '/configs/miti_65_config.yaml'),
-            description='ros2_control controllers YAML'),
+            description='tennisbuddy_ros2_control controllers YAML'),
         DeclareLaunchArgument(
             'ekf_config',
             default_value=str(get_package_share_directory('tennisbuddy_perception') + '/configs/robot_localization.yaml'),
@@ -85,9 +85,9 @@ def generate_launch_description():
     assert hardware_config.is_file()
 
     robot_driver = Node(
-        package='ros2_control',
-        name='ros2_control',
-        executable='ros2_control',
+        package='tennisbuddy_ros2_control',
+        name='tennisbuddy_ros2_control',
+        executable='tennisbuddy_ros2_control',
         parameters=[hardware_config],
         output='screen',
         respawn=True,

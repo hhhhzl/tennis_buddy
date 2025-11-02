@@ -17,7 +17,7 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     accessories_config_path = Path(get_package_share_directory(
-        'tennisbuddy_perception'), 'config/accessories.yaml')
+        'tennisbuddy_perception'), 'configs/accessories.yaml')
 
     # Read the config file
     with open(accessories_config_path, 'r') as f:
