@@ -66,6 +66,7 @@ def generate_launch_description():
             '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
             '/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
             '/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU',
+            f'/world/{world}/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V',
         ],
     )
 

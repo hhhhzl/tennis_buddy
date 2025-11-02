@@ -18,7 +18,7 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('ymax', 7.0)
         self.declare_parameter('max_balls', 50)
 
-        self.in_topic = self.get_parameter('in_topic').value
+        self.in_topic = f'/world/{self.world}/pose/info' 
         self.out_topic = self.get_parameter('out_topic').value
         self.frame_id = self.get_parameter('target_frame').value
         self.z_max = float(self.get_parameter('z_max').value)
