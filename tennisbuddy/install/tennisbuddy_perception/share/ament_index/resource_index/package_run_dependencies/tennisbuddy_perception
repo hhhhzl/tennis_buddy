@@ -1,1 +1,0 @@
-python3;setuptools;ament_index_python;rclpy;gazebo_msgs;geometry_msgs;tf2_ros;tf2_geometry_msgs;ros_gz_interfaces;ros_gz_bridge;robot_localization;slam_toolbox;ament_lint_auto;ament_lint_common
