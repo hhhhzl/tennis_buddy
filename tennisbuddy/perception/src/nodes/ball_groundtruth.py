@@ -7,7 +7,7 @@ from geometry_msgs.msg import PoseArray, Pose
 class BallGroundTruthRosGz(Node):
     def __init__(self):
         super().__init__('ball_groundtruth_rosgz')
-        self.declare_parameter('world', 'default')
+        self.declare_parameter('world', 'tennis_world')
         self.declare_parameter('in_topic', '/world/default/pose/info')
         self.declare_parameter('out_topic', '/ball_positions')
         self.declare_parameter('target_frame', 'map')
@@ -18,7 +18,8 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('ymax', 7.0)
         self.declare_parameter('max_balls', 50)
 
-        self.in_topic = self.get_parameter('in_topic').value
+        self.world = self.get_parameter('world').get_parameter_value().string_value
+        self.in_topic = f'/world/{self.world}/pose/info' 
         self.out_topic = self.get_parameter('out_topic').value
         self.frame_id = self.get_parameter('target_frame').value
         self.z_max = float(self.get_parameter('z_max').value)

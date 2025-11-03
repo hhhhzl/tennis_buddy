@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     controller_config = Path(get_package_share_directory(
-        'tennisbuddy_driver'), 'configs', 'ps5_controller_config.yaml')
+        'tennisbuddy_ros2_control'), 'configs', 'ps5_controller_config.yaml')
     assert controller_config.is_file()
     topics_config = Path(get_package_share_directory(
         'tennisbuddy_driver'), 'configs', 'topics.yaml')
@@ -16,7 +16,7 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     node = Node(
-        package='tennisbuddy_input_manager',
+        package='roverrobotics_input_manager',
         executable='joys_manager.py',
         output='screen',
         parameters=[

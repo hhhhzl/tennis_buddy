@@ -8,7 +8,6 @@
 
    <!-- Build tools -->
   <buildtool_depend>ament_cmake</buildtool_depend>
-<!--  <buildtool_depend>ament_python</buildtool_depend>-->
 
   <!-- Python runtime -->
   <exec_depend>python3</exec_depend>

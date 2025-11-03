@@ -8,13 +8,12 @@ class MockSpawnService(Node):
     def __init__(self):
         super().__init__('mock_spawn_service')
         self.srv = self.create_service(
-            SpawnEntity, '/world/default/create', self.cb)
-        self.get_logger().info('Mock spawn service ready at /world/default/create')
+            SpawnEntity, '/world/tennis_world/create', self.cb)
+        self.get_logger().info('Mock spawn service ready at /world/tennis_world/create')
 
     def cb(self, request, response):
         self.get_logger().info(f"Received spawn request for {request.entity_factory.name}")
         response.success = True
-        response.status_message = "mock spawn success"
         return response
 
 
