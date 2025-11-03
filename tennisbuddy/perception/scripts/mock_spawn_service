@@ -9,7 +9,7 @@ src_path = os.path.join(package_share, 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from perception.nodes.mock_spawn_service import main
+from nodes.mock_spawn_service import main
 
 if __name__ == '__main__':
     main()
