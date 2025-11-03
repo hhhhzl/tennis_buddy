@@ -34,7 +34,7 @@ SDF_TPL = """<?xml version='1.0'?>
 class BallSpawnerRosGz(Node):
     def __init__(self):
         super().__init__('ball_spawner_rosgz')
-        self.declare_parameter('world', 'default')
+        self.declare_parameter('world', 'tennis_world')
         self.declare_parameter('count', 15)
         self.declare_parameter('xmin', -3.5)
         self.declare_parameter('xmax', 3.5)
