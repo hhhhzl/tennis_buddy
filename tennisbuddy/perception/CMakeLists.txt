@@ -31,4 +31,6 @@ install(DIRECTORY
   PATTERN "__pycache__" EXCLUDE
 )
 
+ament_python_install_package(${CMAKE_CURRENT_SOURCE_DIR})
+
 ament_package()
