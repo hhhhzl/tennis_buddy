@@ -11,8 +11,7 @@ Path(f'resource/{ros_pkg_name}').touch(exist_ok=True)
 setup(
     name=ros_pkg_name,
     version='0.1.0',
-    packages=['perception', 'perception.nodes']
-    # packages=find_packages(where=py_pkg_root, include=[py_pkg_name, py_pkg_name + '.*']),
+    packages=['perception', 'perception.nodes'],
     package_dir={'': py_pkg_root},
     data_files=[
         ('share/ament_index/resource_index/packages', [f'resource/{ros_pkg_name}']),
