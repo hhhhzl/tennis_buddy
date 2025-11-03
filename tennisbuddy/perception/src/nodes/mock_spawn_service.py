@@ -14,7 +14,6 @@ class MockSpawnService(Node):
     def cb(self, request, response):
         self.get_logger().info(f"Received spawn request for {request.entity_factory.name}")
         response.success = True
-        response.status_message = "mock spawn success"
         return response
 
 

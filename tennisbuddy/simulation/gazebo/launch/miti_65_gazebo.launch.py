@@ -90,7 +90,8 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            f'/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity[gz.msgs.EntityFactory',
+            '/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity',
+            # '/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity[gz.msgs.EntityFactory',
         ],
         output='screen'
     )
