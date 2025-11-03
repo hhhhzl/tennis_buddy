@@ -9,7 +9,7 @@ src_path = os.path.join(package_share, 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-from perception.nodes.ball_spawner import main
+from src.nodes.ball_spawner import main
 
 if __name__ == '__main__':
     main()
