@@ -37,7 +37,7 @@ ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf
 
 ## Testing
 ```
-ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf
+ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf world_name:=tennis_world use_sim_time:=true
 ros2 launch tennisbuddy_perception ball_spawner.launch.py world:=tennis_world count:=15
 ros2 launch tennisbuddy_perception perception_gazebo_gt.launch.py world:=tennis_world
 ros2 launch tennisbuddy_planning navigation_launch.py use_sim_time:=true slam:=False
