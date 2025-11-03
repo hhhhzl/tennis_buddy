@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -12,18 +12,11 @@ def generate_launch_description():
     declare_world = DeclareLaunchArgument('world', default_value='tennis_world')
     declare_use_sim_time = DeclareLaunchArgument('use_sim_time', default_value='true')
 
-    # Bridge for pose info from Gazebo
     gz_pose_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            PythonExpression([
-                "'/world/'",
-                "str(",
-                world,
-                ")",
-                "'/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V'"
-            ]),
+            '/world/tennis_world/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V',
         ],
         output='screen'
     )
@@ -34,14 +27,8 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'world': world,
-            'in_topic': PythonExpression([
-                "'/world/'",
-                "str(",
-                world,
-                ")",
-                "'/pose/info'"
-            ]),
+            'world': world,  
+            'in_topic': '/world/tennis_world/pose/info', 
             'out_topic': '/ball_positions',
             'target_frame': 'map',
             'z_max': 0.25,
