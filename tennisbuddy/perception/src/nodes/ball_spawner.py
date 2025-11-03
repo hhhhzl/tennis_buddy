@@ -73,6 +73,20 @@ class BallSpawnerRosGz(Node):
         self.cli.wait_for_service()
         self.get_logger().info(f'[spawner] service available: {service_name}')
 
+        import time
+        timeout_sec = 10.0
+        start_time = time.time()
+
+        while not self.cli.service_is_ready():
+            if time.time() - start_time > timeout_sec:
+                self.get_logger().error(
+                    f'[spawner] Service {service_name} not available after {timeout_sec} seconds!')
+                self.get_logger().error('[spawner] Exiting...')
+                return
+            self.get_logger().info(f'[spawner] Waiting for service... ({time.time() - start_time:.1f}s)')
+            rclpy.spin_once(self, timeout_sec=0.5)
+
+        self.get_logger().info(f'[spawner] service available: {service_name}')
         self.spawn_all()
 
     def spawn_all(self):

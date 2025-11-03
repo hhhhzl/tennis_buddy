@@ -79,21 +79,21 @@ def generate_launch_description():
         parameters=[params],
         arguments=[])
     
-    # Declare service argument
-    world_name_arg = DeclareLaunchArgument(
-        'world_name',
-        default_value='tennis_world',
-        description='Gazebo world name'
-    )
-    world_name = LaunchConfiguration('world_name')
-    gz_service_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        arguments=[
-            f'/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity[gz.msgs.EntityFactory',
-        ],
-        output='screen'
-    )
+    # # Declare service argument
+    # world_name_arg = DeclareLaunchArgument(
+    #     'world_name',
+    #     default_value='tennis_world',
+    #     description='Gazebo world name'
+    # )
+    # world_name = LaunchConfiguration('world_name')
+    # gz_service_bridge = Node(
+    #     package='ros_gz_bridge',
+    #     executable='parameter_bridge',
+    #     arguments=[
+    #         f'/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity[gz.msgs.EntityFactory',
+    #     ],
+    #     output='screen'
+    # )
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -110,6 +110,6 @@ def generate_launch_description():
     # Launch Robot State Publisher
     ld.add_action(start_robot_state_publisher_cmd)
 
-    ld.add_action(world_name_arg)
-    ld.add_action(gz_service_bridge)
+    # ld.add_action(world_name_arg)
+    # ld.add_action(gz_service_bridge)
     return ld
