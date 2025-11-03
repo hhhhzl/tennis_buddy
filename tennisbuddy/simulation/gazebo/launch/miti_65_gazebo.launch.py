@@ -8,7 +8,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-
+from launch.substitutions import TextSubstitution
 
 def generate_launch_description():
     # Create the launch configuration variables
@@ -66,7 +66,6 @@ def generate_launch_description():
             '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
             '/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan',
             '/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU',
-            f'/world/{world}/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V',
         ],
     )
 
@@ -79,6 +78,22 @@ def generate_launch_description():
         output='screen',
         parameters=[params],
         arguments=[])
+    
+    # Declare service argument
+    world_name_arg = DeclareLaunchArgument(
+        'world_name',
+        default_value='tennis_world',
+        description='Gazebo world name'
+    )
+    world_name = LaunchConfiguration('world_name')
+    gz_service_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            f'/world/tennis_world/create@ros_gz_interfaces/srv/SpawnEntity[gz.msgs.EntityFactory',
+        ],
+        output='screen'
+    )
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -95,4 +110,6 @@ def generate_launch_description():
     # Launch Robot State Publisher
     ld.add_action(start_robot_state_publisher_cmd)
 
+    ld.add_action(world_name_arg)
+    ld.add_action(gz_service_bridge)
     return ld
