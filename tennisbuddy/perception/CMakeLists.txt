@@ -32,6 +32,8 @@ install(DIRECTORY
   PATTERN "__pycache__" EXCLUDE
 )
 
+# Install Python package using setup.py
+# The directory path should be absolute and contain setup.py
 ament_python_install_package(${CMAKE_CURRENT_SOURCE_DIR})
 
 ament_package()
