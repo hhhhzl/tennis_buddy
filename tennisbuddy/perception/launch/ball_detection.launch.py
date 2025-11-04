@@ -74,6 +74,18 @@ def generate_launch_description():
         output='screen'
     )
 
+    bridge = Node(
+        package='tennisbuddy_perception',
+        executable='ball_detection_bridge',  
+        output='screen',
+        parameters=[{
+            'target_frame': 'map',
+            'camera_frame': 'camera_depth_optical_frame',
+            'min_confidence': 0.25,
+            'max_depth': 5.0,
+        }]
+    )
+
     # --- Optional RealSense driver (align depth=true) ---
     rs_share = get_package_share_directory('realsense2_camera')
     rs_launch = IncludeLaunchDescription(
@@ -90,4 +102,5 @@ def generate_launch_description():
         rs_launch,
         detector,
         receiver,
+        bridge
     ])
