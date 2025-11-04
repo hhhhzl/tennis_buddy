@@ -8,7 +8,6 @@ install(PROGRAMS
   scripts/ball_spawner
   scripts/ball_groundtruth
   scripts/mock_spawn_service
-  scripts/ball_detection
   scripts/yolo_realsense_detector
   scripts/detector_receiver
   DESTINATION lib/${PROJECT_NAME}
