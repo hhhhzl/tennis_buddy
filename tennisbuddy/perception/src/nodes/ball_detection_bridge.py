@@ -51,7 +51,7 @@ class BallDetectionBridge(Node):
             self.on_depth, qos
         )
         
-        # 发布
+        # publish
         self.pub_balls = self.create_publisher(
             PoseArray,
             self.get_parameter('output_topic').value,
