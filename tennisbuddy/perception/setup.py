@@ -31,7 +31,7 @@ setup(
             'ball_groundtruth = perception.nodes.ball_groundtruth:main',
             'mock_spawn_service = perception.nodes.mock_spawn_service:main',
             'ball_detection_bridge = perception.nodes.ball_detection_bridge:main',
-            'detector_receiver = perception.nodes.detector_receiver:main',
+            'detect_receiver = perception.nodes.detect_receiver:main',
             'yolo_realsense_detector = perception.nodes.yolo_realsense_detector:main',
         ],
     },
