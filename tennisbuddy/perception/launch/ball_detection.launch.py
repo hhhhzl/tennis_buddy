@@ -70,7 +70,7 @@ def generate_launch_description():
     # --- Receiver node ---
     receiver = Node(
         package='tennisbuddy_perception',
-        executable='detector_receiver',
+        executable='detect_receiver',
         output='screen'
     )
 
