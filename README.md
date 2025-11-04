@@ -33,3 +33,13 @@ Run in Gazebo:
 ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf
 ```
 ![Running Tennisbuddy in Gazebo](./assets/gazebo_sim.png)
+
+
+## Testing
+```
+ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf world_name:=tennis_world use_sim_time:=true
+ros2 launch tennisbuddy_perception ball_spawner.launch.py world:=tennis_world count:=15
+ros2 launch tennisbuddy_perception perception_gazebo_gt.launch.py world:=tennis_world
+ros2 launch tennisbuddy_planning navigation_launch.py use_sim_time:=true slam:=true map_file_name:=/home/autobots/tennis_buddy/tennisbuddy/ros2_control/maps/court_mapv2
+ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py use_sim_time:=true
+```
