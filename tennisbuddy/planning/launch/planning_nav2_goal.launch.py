@@ -42,7 +42,13 @@ def generate_launch_description():
         package='tennisbuddy_planning',
         executable='nav2_goal_pusher',
         output='screen',
-        parameters=[sources_yaml, {'use_sim_time': use_sim_time}],
+        parameters=[
+            sources_yaml, 
+            {
+                'use_sim_time': use_sim_time,
+                'odom_topic': '/odometry/filtered',  
+            }
+        ],
     )
 
     return LaunchDescription([

@@ -25,6 +25,7 @@ class Nav2GoalPusher(Node):
         super().__init__('nav2_goal_pusher')
         self.declare_parameter('pickup_distance', 0.35)
         self.declare_parameter('frame_id', 'map')
+        self.declare_parameter('odom_topic', '/odometry/filtered') 
         self.pickup_d = float(self.get_parameter('pickup_distance').value)
         self.frame_id = self.get_parameter('frame_id').value
 
@@ -34,7 +35,8 @@ class Nav2GoalPusher(Node):
             reliability=QoSReliabilityPolicy.RELIABLE, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
 
         self.sub_balls = self.create_subscription(PoseArray, '/ball_positions', self.on_balls, qos_sensor)
-        self.sub_odom = self.create_subscription(Odometry, '/odom', self.on_odom, qos_rel)
+        odom_topic = self.get_parameter('odom_topic').value
+        self.sub_odom = self.create_subscription(Odometry, odom_topic, self.on_odom, qos_rel)
 
         # Action Client
         self.ac = ActionClient(self, NavigateToPose, 'navigate_to_pose')
@@ -57,13 +59,17 @@ class Nav2GoalPusher(Node):
         for p in msg.poses:
             arr.append([p.position.x, p.position.y])
         self.targets = np.array(arr, dtype=float) if arr else np.zeros((0, 2))
+        self.get_logger().info(f'[nav2_goal_pusher] Received {len(self.targets)} balls')
         self.rebuild_queue()
 
     def rebuild_queue(self):
-        """Multi_target algorithm"""
-        # TODO
+        """Multi-target algorithm"""
         self.work_queue = []
-        if self.targets.size == 0 or self.robot_xy is None:
+        if self.targets.size == 0:
+            self.get_logger().warn('[nav2_goal_pusher] No targets available')
+            return
+        if self.robot_xy is None:
+            self.get_logger().warn('[nav2_goal_pusher] Robot position unknown (no odom data)')
             return
         remaining = list(range(len(self.targets)))
         pos = self.robot_xy.copy()
@@ -72,6 +78,7 @@ class Nav2GoalPusher(Node):
             self.work_queue.append(i)
             pos = self.targets[i]
             remaining.remove(i)
+        self.get_logger().info(f'[nav2_goal_pusher] Built queue with {len(self.work_queue)} targets')
 
     def compute_pickup_pose(self, robot_xy, ball_xy):
         theta = math.atan2(ball_xy[1] - robot_xy[1], ball_xy[0] - robot_xy[0])
