@@ -31,7 +31,7 @@ def generate_launch_description():
         description='RGB topic'
     )
     depth_topic = DeclareLaunchArgument(
-        'depth_topic', default_value='/camera/camera/depth/image_rect_raw',
+        'depth_topic', default_value='/camera/camera/aligned_depth_to_color/image_raw',
         description='Aligned depth topic'
     )
     camera_info_topic = DeclareLaunchArgument(
@@ -92,7 +92,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(os.path.join(rs_share, 'launch', 'rs_launch.py')),
         condition=IfCondition(start_rs),
         launch_arguments={
-            'align_depth': 'true',
+            'align_depth.enable': 'true',
             # add more rs_launch args here if needed (e.g., enable_color, enable_depth, etc.)
         }.items()
     )
