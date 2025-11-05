@@ -4,7 +4,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from std_msgs.msg import Float32MultiArray, Int32MultiArray
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
-from sensor_msgs.msg import CameraInfo
+from sensor_msgs.msg import CameraInfo, Image
 import tf2_ros
 from tf2_geometry_msgs import do_transform_pose
 import numpy as np
@@ -15,8 +15,8 @@ class BallDetectionBridge(Node):
         
         self.declare_parameter('bbox_topic', '/detections/bboxes')
         self.declare_parameter('conf_topic', '/detections/confidences')
-        self.declare_parameter('camera_info_topic', '/camera/color/camera_info')
-        self.declare_parameter('depth_topic', '/camera/aligned_depth_to_color/image_raw')
+        self.declare_parameter('camera_info_topic', '/camera/camera/color/camera_info')
+        self.declare_parameter('depth_topic', '/camera/camera/aligned_depth_to_color/image_raw')
         self.declare_parameter('output_topic', '/ball_positions')
         self.declare_parameter('target_frame', 'map')
         self.declare_parameter('camera_frame', 'camera_depth_optical_frame')
@@ -195,7 +195,7 @@ class BallDetectionBridge(Node):
             if pose_array.poses:
                 self.pub_balls.publish(pose_array)
                 self.get_logger().info(
-                    f"Published {len(pose_array.poses)} balls to {self.output_topic}"
+                    f"Published {len(pose_array.poses)} balls to {self.get_parameter('output_topic').value}"
                 )
                 
         except tf2_ros.TransformException as e:
