@@ -36,7 +36,7 @@ def generate_launch_description():
         }.items()
     )
 
-    sources_yaml = os.path.join(pkg_plan, 'config', 'sources.yaml')
+    sources_yaml = os.path.join(pkg_plan, 'configs', 'sources.yaml')
 
     goal_pusher = Node(
         package='tennisbuddy_planning',
