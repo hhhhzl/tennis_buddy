@@ -17,22 +17,25 @@ from ultralytics import YOLO
 
 
 def _median_depth(depth_img: np.ndarray, x: int, y: int, win: int = 5) -> float:
-    """Return median depth (m) near (x,y). Supports uint16 (mm) or float32 (m)."""
     h, w = depth_img.shape[:2]
     x1 = max(0, x - win // 2)
     y1 = max(0, y - win // 2)
-    x2 = min(w, x + win // 2)
-    y2 = min(h, y + win // 2)
+    x2 = min(w, x + win // 2 + 1)
+    y2 = min(h, y + win // 2 + 1)
     patch = depth_img[y1:y2, x1:x2]
-    if patch.size == 0:
-        return float("nan")
-    if patch.dtype == np.uint16:
-        vals = np.where(patch > 0, patch.astype(np.float32), np.nan)
-        med = np.nanmedian(vals)
-        return float(med / 1000.0) if np.isfinite(med) else float("nan")
     vals = np.where(patch > 0, patch.astype(np.float32), np.nan)
     med = np.nanmedian(vals)
-    return float(med) if np.isfinite(med) else float("nan")
+
+    # return patch
+    # Log the depth values for debugging
+    if np.isnan(med):
+        return float("nan")
+    
+    # Ensure the median depth is valid and positive
+    if np.isfinite(med) and med > 0:
+        return float(med)
+    else:
+        return float("nan")
 
 
 class YoloImageDetector(Node):
@@ -47,9 +50,9 @@ class YoloImageDetector(Node):
         self.declare_parameter("model", default_model_path)
         self.declare_parameter("conf", 0.25)
         self.declare_parameter("imgsz", 640)
-        self.declare_parameter("color_topic", "/camera/color/image_raw")
-        self.declare_parameter("depth_topic", "/camera/aligned_depth_to_color/image_raw")
-        self.declare_parameter("camera_info_topic", "/camera/color/camera_info")
+        self.declare_parameter("color_topic", "/camera/camera/color/image_raw")
+        self.declare_parameter("depth_topic", "/camera/camera/depth/image_rect_raw")
+        self.declare_parameter("camera_info_topic", "/camera/camera/color/camera_info")
 
         # GPU-related parameters
         self.declare_parameter("use_gpu", True)         # try CUDA first
@@ -71,6 +74,8 @@ class YoloImageDetector(Node):
         # ---------- Publishers ----------
         self.pub_conf = self.create_publisher(Float32MultiArray, "detections/confidences", 10)
         self.pub_bbox = self.create_publisher(Int32MultiArray, "detections/bboxes", 10)
+        self.pub_cbox = self.create_publisher(Int32MultiArray, "detections/cboxes", 10)
+        self.pub_depth = self.create_publisher(Float32MultiArray, "detections/depth", 10)
 
         # ---------- Subscribers ----------
         qos = QoSProfile(
@@ -175,7 +180,6 @@ class YoloImageDetector(Node):
                     + "".join(traceback.format_exception(type(e), e, e.__traceback__))
                 )
 
-        # CPU fallback
         try:
             self._load_and_warmup(device="cpu", half=False)
             self.active_device = "cpu"
@@ -217,59 +221,74 @@ class YoloImageDetector(Node):
             return
 
         img = self.last_color
-        try:
-            results = self.model.predict(
-                img,
-                imgsz=self.imgsz,
-                conf=self.conf_thr,
-                device=self.active_device,
-                half=self.active_half,
-                verbose=False,
+        results = self.model.predict(
+            img,
+            imgsz=self.imgsz,
+            conf=self.conf_thr,
+            device=self.active_device,
+            half=self.active_half,
+            verbose=False,
+        )
+        if not results:
+            return
+
+        r = results[0]
+
+        if r.boxes is None or len(r.boxes) == 0:
+            # Inference is running but nothing detected
+            self.get_logger().debug("YOLO inference: 0 detections in this frame")
+            return
+
+        xyxy = r.boxes.xyxy.detach().to("cpu").numpy().astype(int)
+        conf = r.boxes.conf.detach().to("cpu").numpy().astype(np.float32)
+
+        bboxes_flat = []
+        cboxes_flat = []
+        confs = []
+
+        depth_img = self.last_depth
+        K = self.last_K
+
+        for idx, ((x1, y1, x2, y2), c) in enumerate(zip(xyxy, conf)):
+            bboxes_flat.extend([int(x1), int(y1), int(x2), int(y2)])
+            confs.append(float(c))
+            z = []
+            depth_str = "n/a"
+            coord_str = ""   
+            # self.get_logger().info(f"===========================\n {depth_img}")
+            if depth_img is None:     
+                self.get_logger().warning("No depth frame received.")     
+            # if np.any(depth_img == 0):
+            #     self.get_logger().warning(f"Depth image contains zero values at {np.where(depth_img == 0)}")
+            if depth_img is not None and K is not None:
+                fx, fy, cx, cy = K
+                xc = (x1 + x2) // 2
+                yc = (y1 + y2) // 2
+                cboxes_flat.extend([int(xc), int(yc)])
+                # self.get_logger().info(
+                # f"bbox=({x1},{y1},{x2},{y2}), xc, yc = ({xc}, {yc})"
+                # )
+                # patch = _median_depth(depth_img, xc, yc, win=5)
+                # self.get_logger().info(f"[patch]={patch}")
+                # z_single = _median_depth(depth_img, xc, yc, win=10)
+                z = _median_depth(depth_img, xc, yc, win=10)
+                # z.append(z_single)
+                self.get_logger().info(f"Depth={z}")
+                if np.isfinite(z) and z > 0:
+                    X = (xc - cx) * z / fx
+                    Y = (yc - cy) * z / fy
+                    depth_str = f"{z:.3f} mm"
+                    coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z:.3f}) mm"
+            self.get_logger().info(
+                f"Detection {idx}: conf={c:.3f}, "
+                f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
             )
-            if not results:
-                return
-
-            r = results[0]
-
-            if r.boxes is None or len(r.boxes) == 0:
-                # Inference is running but nothing detected
-                self.get_logger().debug("YOLO inference: 0 detections in this frame")
-                return
-
-            xyxy = r.boxes.xyxy.detach().to("cpu").numpy().astype(int)
-            conf = r.boxes.conf.detach().to("cpu").numpy().astype(np.float32)
-
-            bboxes_flat = []
-            confs = []
-
-            depth_img = self.last_depth
-            K = self.last_K
-
-            for idx, ((x1, y1, x2, y2), c) in enumerate(zip(xyxy, conf)):
-                bboxes_flat.extend([int(x1), int(y1), int(x2), int(y2)])
-                confs.append(float(c))
-
-                depth_str = "n/a"
-                coord_str = ""
-                if depth_img is not None and K is not None:
-                    fx, fy, cx, cy = K
-                    xc = (x1 + x2) // 2
-                    yc = (y1 + y2) // 2
-                    z = _median_depth(depth_img, xc, yc, win=5)
-                    if np.isfinite(z) and z > 0:
-                        X = (xc - cx) * z / fx
-                        Y = (yc - cy) * z / fy
-                        depth_str = f"{z:.3f} m"
-                        coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z:.3f}) m"
-
-                self.get_logger().info(
-                    f"Detection {idx}: conf={c:.3f}, "
-                    f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
-                )
-
+        try:
             # Only publish when we have detections
             self.pub_conf.publish(Float32MultiArray(data=confs))
             self.pub_bbox.publish(Int32MultiArray(data=bboxes_flat))
+            self.pub_cbox.publish(Int32MultiArray(data = cboxes_flat))
+            # self.pub_depth.publish(Float32MultiArray(data = z))
 
         except Exception as e:
             self.get_logger().error("Inference failed: " + str(e))

@@ -18,8 +18,8 @@ class DetectionReceiver(Node):
         self.sub_json = self.create_subscription(String, '/detections/json', self.cb_json, 10)
         self.sub_conf = self.create_subscription(Float32MultiArray, '/detections/confidences', self.cb_conf, 10)
         self.sub_bbox = self.create_subscription(Int32MultiArray, '/detections/bboxes', self.cb_bboxes, 10)
-        self.sub_2d  = self.create_subscription(Detection2DArray, 'detections_2d', self.cb_2d, qos)
-        self.sub_3d  = self.create_subscription(Detection3DArray, 'detections_3d', self.cb_3d, qos)
+        self.sub_cbox = self.create_subscription(Int32MultiArray, '/detections/cboxes', self.cb_cboxes, 10)
+        self.sub_depth = self.create_subscription(Float32MultiArray, '/detections/depth', self.cb_depth, 10)
 
     def cb_json(self, msg: String):
         try:
@@ -37,11 +37,13 @@ class DetectionReceiver(Node):
         boxes = [vals[i:i+4] for i in range(0, len(vals), 4)]
         self.get_logger().info(f"/detections/bboxes: {boxes}")
 
-    def cb_2d(self, msg: Detection2DArray):
-        self.get_logger().info(f"vision_msgs/Detection2DArray: {len(msg.detections)} dets")
+    def cb_cboxes(self, msg: Int32MultiArray):
+        vals = list(msg.data)
+        boxes = [vals[i:i+2] for i in range(0, len(vals), 2)]
+        self.get_logger().info(f"/detections/cboxes: {boxes}")
 
-    def cb_3d(self, msg: Detection3DArray):
-        self.get_logger().info(f"vision_msgs/Detection3DArray: {len(msg.detections)} dets")
+    def cb_depth(self, msg: Float32MultiArray):
+        self.get_logger().info(f"/detections/depth: {list(msg.data)}")
 
 def main():
     rclpy.init()
