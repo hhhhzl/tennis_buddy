@@ -27,15 +27,15 @@ def generate_launch_description():
         description='Start realsense2_camera driver in this launch'
     )
     color_topic = DeclareLaunchArgument(
-        'color_topic', default_value='/camera/color/image_raw',
+        'color_topic', default_value='/camera/camera/color/image_raw',
         description='RGB topic'
     )
     depth_topic = DeclareLaunchArgument(
-        'depth_topic', default_value='/camera/aligned_depth_to_color/image_raw',
+        'depth_topic', default_value='/camera/camera/depth/image_rect_raw',
         description='Aligned depth topic'
     )
     camera_info_topic = DeclareLaunchArgument(
-        'camera_info_topic', default_value='/camera/color/camera_info',
+        'camera_info_topic', default_value='/camera/camera/color/camera_info',
         description='Camera info topic for intrinsics'
     )
     conf = DeclareLaunchArgument(
@@ -67,7 +67,7 @@ def generate_launch_description():
         }]
     )
 
-    # --- Receiver node ---
+    # # --- Receiver node ---
     receiver = Node(
         package='tennisbuddy_perception',
         executable='detect_receiver',
