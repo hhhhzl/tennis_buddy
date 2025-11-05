@@ -46,22 +46,10 @@ ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py use_sim_time:=true
 
 # 
 ```
-ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "
-pose:
-  header:
-    frame_id: 'map'
-    stamp:
-      sec: 0
-      nanosec: 0
-  pose:
-    position:
-      x: 2.0
-      y: 1.0
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.0
-      w: 1.0
-"
+ros2 run tennisbuddy_planning nav2_goal_pusher \
+    --ros-args \
+    -p use_sim_time:=true \
+    -p odom_topic:=/odometry/filtered \
+    -p frame_id:=map \
+    -p pickup_distance:=0.35
 ```
