@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+
 import os
+import sys
 import traceback
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import numpy as np
 import rclpy
@@ -18,8 +21,16 @@ from ultralytics import YOLO
 
 def _median_depth(depth_m: np.ndarray, cx: int, cy: int, k: int = 5) -> float:
     """
-    Exact same logic as median_depth(depth_m, cx, cy, k) in detectobj.py.
-    depth_m: float32 meters
+    Same logic as median_depth() in detectobj.py:
+
+        h, w = depth_m.shape
+        x0 = max(cx - k // 2, 0)
+        y0 = max(cy - k // 2, 0)
+        x1 = min(cx + k // 2 + 1, w)
+        y1 = min(cy + k // 2 + 1, h)
+        vals = depth_m[y0:y1, x0:x1]
+        vals = vals[vals > 0]
+        return float(np.median(vals)) if vals.size else float("nan")
     """
     h, w = depth_m.shape
 
@@ -49,14 +60,12 @@ class YoloImageDetector(Node):
         self.declare_parameter("conf", 0.25)
         self.declare_parameter("imgsz", 640)
 
-        # Use typical RealSense topics as defaults; you can override in launch.
-        self.declare_parameter("color_topic", "/camera/camera/color/image_raw")
-        self.declare_parameter("depth_topic", "/camera/camera/aligned_depth_to_color/image_raw")
-        self.declare_parameter("camera_info_topic", "/camera/camera/color/camera_info")
+        # Default to typical realsense2_camera topics when align_depth:=true
+        self.declare_parameter("color_topic", "/camera/color/image_raw")
+        self.declare_parameter("depth_topic", "/camera/aligned_depth_to_color/image_raw")
+        self.declare_parameter("camera_info_topic", "/camera/color/camera_info")
 
-        # depth_scale to match detectobj.py:
-        #   depth_u16 = np.asanyarray(depth_frame.get_data())
-        #   depth_m   = depth_u16.astype(np.float32) * depth_scale
+        # For RealSense ROS depth: 16UC1 in mm → scale=0.001 to get meters
         self.declare_parameter("depth_scale", 0.001)
 
         # GPU-related parameters
@@ -121,8 +130,8 @@ class YoloImageDetector(Node):
         )
 
         # Latest frames / camera info
-        self.last_color: Optional[np.ndarray] = None
-        self.last_depth: Optional[np.ndarray] = None   # float32, meters
+        self.last_color: Optional[np.ndarray] = None      # BGR8
+        self.last_depth: Optional[np.ndarray] = None      # float32, meters
         self.last_K: Optional[Tuple[float, float, float, float]] = None  # fx, fy, cx, cy
 
         self._seen_color = False
@@ -136,11 +145,14 @@ class YoloImageDetector(Node):
 
         torch_cuda = torch.cuda.is_available()
         self.get_logger().info(
-            "Initializing YOLO detector...\n"
+            "Initializing YOLO detector (ROS + RealSense topics)…\n"
+            f"- Python: {sys.executable}\n"
             f"- Model path: {self.model_path} (exists={os.path.exists(self.model_path)})\n"
             f"- Color topic: {self.color_topic}\n"
             f"- Depth topic: {self.depth_topic}\n"
-            f"- Depth scale: {self.depth_scale}"
+            f"- CameraInfo topic: {self.cam_info_topic}\n"
+            f"- Depth scale: {self.depth_scale}\n"
+            f"- Torch CUDA available: {torch_cuda}"
         )
 
         try:
@@ -163,31 +175,29 @@ class YoloImageDetector(Node):
             if not self._seen_color:
                 self._seen_color = True
                 self.get_logger().info(
-                    f"First color frame received on {self.color_topic}, shape={cv_img.shape}"
+                    f"First color frame received on {self.color_topic}, "
+                    f"shape={cv_img.shape}"
                 )
         except Exception as e:
             self.get_logger().error(f"cv_bridge color conversion failed: {e}")
 
     def _on_depth(self, msg: Image) -> None:
         """
-        Equivalent of:
+        Equivalent to:
 
-            aligned = align.process(frames)
-            depth_frame = aligned.get_depth_frame()
-            depth_u16   = np.asanyarray(depth_frame.get_data())
-            depth_m     = depth_u16.astype(np.float32) * depth_scale
+            depth_u16 = np.asanyarray(depth_frame.get_data())   # from aligned depth
+            depth_m   = depth_u16.astype(np.float32) * depth_scale
         """
         try:
-            # This is like np.asanyarray(depth_frame.get_data()) in pyrealsense2
             depth_raw = self.bridge.imgmsg_to_cv2(
                 msg, desired_encoding="passthrough"
             )
 
             if msg.encoding in ("16UC1", "mono16"):
-                depth_u16 = np.asanyarray(depth_raw, dtype=np.uint16)
+                depth_u16 = depth_raw.astype(np.uint16)
                 depth_m = depth_u16.astype(np.float32) * self.depth_scale
             else:
-                # Already meters (e.g. 32FC1)
+                # If already in meters (e.g. 32FC1)
                 depth_m = depth_raw.astype(np.float32)
 
             self.last_depth = depth_m
@@ -195,8 +205,8 @@ class YoloImageDetector(Node):
             if not self._seen_depth:
                 self._seen_depth = True
                 self.get_logger().info(
-                    f"First depth frame received on {self.depth_topic} "
-                    f"(encoding={msg.encoding}, shape={depth_m.shape})"
+                    f"First depth frame received on {self.depth_topic}, "
+                    f"encoding={msg.encoding}, shape={depth_m.shape}"
                 )
         except Exception as e:
             self.get_logger().error(f"cv_bridge depth conversion failed: {e}")
@@ -274,11 +284,15 @@ class YoloImageDetector(Node):
     # ---------- Frame processing (only publish on detections) ----------
 
     def _process_frame(self) -> None:
-        if self.model is None or self.last_color is None:
+        # Need model + color + depth
+        if self.model is None or self.last_color is None or self.last_depth is None:
             return
 
         img = self.last_color
+        depth_img = self.last_depth
+        K = self.last_K
 
+        # YOLO inference
         results = self.model.predict(
             img,
             imgsz=self.imgsz,
@@ -298,13 +312,10 @@ class YoloImageDetector(Node):
         xyxy = r.boxes.xyxy.detach().to("cpu").numpy().astype(int)
         conf = r.boxes.conf.detach().to("cpu").numpy().astype(np.float32)
 
-        bboxes_flat: list[int] = []
-        cboxes_flat: list[int] = []
-        confs: list[float] = []
-        z_list: list[float] = []
-
-        depth_img = self.last_depth
-        K = self.last_K
+        bboxes_flat: List[int] = []
+        cboxes_flat: List[int] = []
+        confs: List[float] = []
+        z_list: List[float] = []
 
         for idx, ((x1, y1, x2, y2), c) in enumerate(zip(xyxy, conf)):
             bboxes_flat.extend([int(x1), int(y1), int(x2), int(y2)])
@@ -314,34 +325,36 @@ class YoloImageDetector(Node):
             coord_str = ""
 
             if depth_img is None:
-                self.get_logger().warning("No depth frame received.")
-            elif K is not None:
-                fx, fy, cx, cy = K
-
-                cx_b = (x1 + x2) // 2
-                cy_b = (y1 + y2) // 2
-
-                cboxes_flat.extend([int(cx_b), int(cy_b)])
-
-                # Same as: dist = median_depth(depth_m, cx, cy, k=5)
-                z_single = _median_depth(depth_img, cx_b, cy_b, k=5)
+                self.get_logger().warning("No depth frame available.")
+                z_single = float("nan")
                 z_list.append(z_single)
+                continue
 
-                self.get_logger().info(
-                    f"Depth at ({cx_b},{cy_b}) = {z_single:.3f} m"
-                )
+            # Center of bbox
+            cx_b = (x1 + x2) // 2
+            cy_b = (y1 + y2) // 2
+            cboxes_flat.extend([int(cx_b), int(cy_b)])
 
-                if np.isfinite(z_single) and z_single > 0.0:
-                    X = (cx_b - cx) * z_single / fx
-                    Y = (cy_b - cy) * z_single / fy
+            # Median depth in meters around center, same as detectobj.py
+            z_single = _median_depth(depth_img, cx_b, cy_b, k=5)
+            z_list.append(z_single)
 
-                    depth_str = f"{z_single:.3f} m"
-                    coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z_single:.3f}) m"
+            self.get_logger().info(
+                f"Depth at ({cx_b},{cy_b}) = {z_single:.3f} m"
+            )
 
-                self.get_logger().info(
-                    f"Detection {idx}: conf={c:.3f}, "
-                    f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
-                )
+            # Optional 3D projection if intrinsics are available
+            if K is not None and np.isfinite(z_single) and z_single > 0.0:
+                fx, fy, cx, cy = K
+                X = (cx_b - cx) * z_single / fx
+                Y = (cy_b - cy) * z_single / fy
+                depth_str = f"{z_single:.3f} m"
+                coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z_single:.3f}) m"
+
+            self.get_logger().info(
+                f"Detection {idx}: conf={c:.3f}, "
+                f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
+            )
 
         try:
             if confs:
@@ -350,7 +363,7 @@ class YoloImageDetector(Node):
                 self.pub_cbox.publish(Int32MultiArray(data=cboxes_flat))
                 self.pub_depth.publish(Float32MultiArray(data=z_list))
         except Exception as e:
-            self.get_logger().error("Inference failed: " + str(e))
+            self.get_logger().error("Publishing failed: " + str(e))
 
 
 def main(args=None) -> None:
