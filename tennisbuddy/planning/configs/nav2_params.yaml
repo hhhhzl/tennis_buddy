@@ -292,8 +292,7 @@ global_costmap:
       footprint_padding: 0.025
       resolution: 0.05
       track_unknown_space: True
-      # plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
-      plugins: ["obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
