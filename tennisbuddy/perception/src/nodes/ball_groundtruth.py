@@ -24,7 +24,7 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('max_balls', 50)
         self.declare_parameter('robot_odom_topic', '/odometry/filtered')
         self.declare_parameter('robot_exclusion_radius', 0.6)
-        self.declare_parameter('truth_match_tolerance', 0.4)
+        self.declare_parameter('truth_match_tolerance', 0.05)
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
         self.in_topic = f'/world/{self.world}/pose/info'
@@ -85,7 +85,7 @@ class BallGroundTruthRosGz(Node):
         if not self.truth_positions:
             return True
         for tx, ty in self.truth_positions:
-            if math.hypot(x - tx, y - ty) <= self.truth_match_tol:
+            if x - tx <= self.truth_match_tol and y - ty <= self.truth_match_tol:
                 return True
         return False
 
