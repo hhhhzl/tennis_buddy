@@ -79,8 +79,14 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        declare_sim, declare_params, declare_map, declare_slam,
-        declare_publish_initial_pose, declare_initial_x, declare_initial_y, declare_initial_yaw,
+        declare_sim, 
+        declare_params, 
+        declare_map, 
+        declare_slam,
+        declare_publish_initial_pose, 
+        declare_initial_x, 
+        declare_initial_y, 
+        declare_initial_yaw,
         nav_frontend,
         initial_pose_node,
         goal_pusher,

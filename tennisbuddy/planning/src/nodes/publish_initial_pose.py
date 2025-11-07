@@ -44,12 +44,12 @@ class InitialPosePublisher(Node):
         msg.pose.pose.position.z = 0.0
         msg.pose.pose.orientation = yaw_to_quat(yaw)
         # basic covariance
-        msg.pose.covariance = [0.25, 0, 0, 0, 0, 0,
-                               0, 0.25, 0, 0, 0, 0,
-                               0, 0, 0.0, 0, 0, 0,
-                               0, 0, 0, 0.0, 0, 0,
-                               0, 0, 0, 0, 0.0, 0,
-                               0, 0, 0, 0, 0, 0.0685]
+        msg.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.25, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0685]
         self.pub.publish(msg)
         self.get_logger().info(f'[initial_pose_once] Published initial pose ({x:.2f}, {y:.2f}, yaw={yaw:.2f}) in {frame_id}')
         self.published = True
