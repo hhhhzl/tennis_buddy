@@ -16,7 +16,8 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/world/tennis_world/pose/info@geometry_msgs/msg/PoseArray[gz.msgs.Pose_V',
+            '/world/tennis_world/pose/info@ros_gz_interfaces/msg/Pose_V[gz.msgs.Pose_V',
+            '/world/tennis_world/model/info@ros_gz_interfaces/msg/ModelList[gz.msgs.Model_V',
         ],
         output='screen'
     )
@@ -29,11 +30,13 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'world': world,  
             'in_topic': '/world/tennis_world/pose/info', 
+            'model_topic': '/world/tennis_world/model/info',
+            'ball_name_prefix': 'tennis_ball_',
             'out_topic': '/ball_positions',
             'target_frame': 'map',
             'z_max': 0.25,
             'xmin': -4.0, 'xmax': 4.0, 'ymin': -7.0, 'ymax': 7.0,
-            'max_balls': 60,
+            'max_balls': 15,
         }]
     )
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import math
+from typing import List, Optional
 
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseArray, Pose
 from nav_msgs.msg import Odometry
+from ros_gz_interfaces.msg import ModelList
 
 
 class BallGroundTruthRosGz(Node):
@@ -22,6 +24,8 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('max_balls', 50)
         self.declare_parameter('robot_odom_topic', '/odometry/filtered')
         self.declare_parameter('robot_exclusion_radius', 0.6)
+        self.declare_parameter('ball_name_prefix', 'tennis_ball_')
+        self.declare_parameter('model_topic', '')
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
         self.in_topic = f'/world/{self.world}/pose/info' 
@@ -36,10 +40,18 @@ class BallGroundTruthRosGz(Node):
 
         self.robot_odom_topic = self.get_parameter('robot_odom_topic').get_parameter_value().string_value
         self.robot_exclusion_radius = float(self.get_parameter('robot_exclusion_radius').value)
+        self.ball_name_prefix = self.get_parameter('ball_name_prefix').get_parameter_value().string_value
+
+        declared_model_topic = self.get_parameter('model_topic').get_parameter_value().string_value
+        if declared_model_topic:
+            self.model_topic = declared_model_topic
+        else:
+            self.model_topic = f'/world/{self.world}/model/info'
 
         self.robot_xy = None
+        self.model_names: List[str] = []
 
-        self.sub = self.create_subscription(PoseArray, self.in_topic, self.on_poses, 10)
+        self.sub_model = self.create_subscription(ModelList, self.model_topic, self.on_models, 10)
         self.pub = self.create_publisher(PoseArray, self.out_topic, 10)
 
         if self.robot_odom_topic:
@@ -52,7 +64,7 @@ class BallGroundTruthRosGz(Node):
             self.get_logger().warn('[gt_rosgz] robot_odom_topic empty; robot exclusion disabled')
 
         self.get_logger().info(
-            f'[gt_rosgz] listen {self.in_topic} -> publish {self.out_topic} (frame={self.frame_id})')
+            f'[gt_rosgz] listen {self.model_topic} -> publish {self.out_topic} (frame={self.frame_id})')
 
     def on_odom(self, msg: Odometry):
         self.robot_xy = (
@@ -60,32 +72,57 @@ class BallGroundTruthRosGz(Node):
             float(msg.pose.pose.position.y),
         )
 
-    def on_poses(self, msg: PoseArray):
+    def on_models(self, msg: ModelList):
         filtered = PoseArray()
-        filtered.header = msg.header
-        filtered.header.frame_id = self.frame_id
+        if hasattr(msg, "header"):
+            filtered.header = msg.header
+            filtered.header.frame_id = self.frame_id or filtered.header.frame_id
+        else:
+            filtered.header.frame_id = self.frame_id
+            filtered.header.stamp = self.get_clock().now().to_msg()
 
         candidates = []
-        for p in msg.poses:
-            if p.position.z > self.z_max:
+        prefix = self.ball_name_prefix or ''
+        models: List = getattr(msg, 'models', [])
+        if not models and hasattr(msg, 'model'):
+            models = msg.model
+
+        for model in models:
+            name = getattr(model, 'name', '')
+            if prefix and not name.startswith(prefix):
                 continue
-            if not (self.xmin <= p.position.x <= self.xmax and
-                    self.ymin <= p.position.y <= self.ymax):
+            pose = getattr(model, 'pose', None)
+            if pose is None:
+                continue
+
+            px = pose.position.x
+            py = pose.position.y
+            pz = pose.position.z
+
+            if pz > self.z_max:
+                continue
+            if not (self.xmin <= px <= self.xmax and
+                    self.ymin <= py <= self.ymax):
                 continue
 
             if self.robot_xy is not None:
-                dx = p.position.x - self.robot_xy[0]
-                dy = p.position.y - self.robot_xy[1]
+                dx = px - self.robot_xy[0]
+                dy = py - self.robot_xy[1]
                 dist_robot = math.hypot(dx, dy)
                 if dist_robot < self.robot_exclusion_radius:
                     continue
                 distance_metric = dist_robot
             else:
-                distance_metric = math.hypot(p.position.x, p.position.y)
+                distance_metric = math.hypot(px, py)
 
             q = Pose()
-            q.position.x, q.position.y, q.position.z = p.position.x, p.position.y, 0.0
-            q.orientation.w = 1.0
+            q.position.x = px
+            q.position.y = py
+            q.position.z = 0.0
+            q.orientation.x = pose.orientation.x
+            q.orientation.y = pose.orientation.y
+            q.orientation.z = pose.orientation.z
+            q.orientation.w = pose.orientation.w or 1.0
             candidates.append((distance_metric, q))
 
         if not candidates:
