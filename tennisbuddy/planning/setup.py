@@ -31,6 +31,7 @@ setup(
             'planner_node = planning.nodes.planner_node:main',
             'trajectory_tracker = planning.nodes.trajectory_tracker:main',
             'nav2_goal_pusher = planning.nodes.nav2_goal_pusher:main',
+            'publish_initial_pose = planning.nodes.publish_initial_pose:main',
             'nav2_path_bridge = planning.nodes.nav2_path_bridge:main',
         ],
     },

@@ -53,3 +53,12 @@ ros2 run tennisbuddy_planning nav2_goal_pusher \
     -p frame_id:=map \
     -p pickup_distance:=0.35
 ```
+
+```
+ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py \
+  use_sim_time:=true \
+  publish_initial_pose:=True \
+  initial_pose_x:=-5.0 \
+  initial_pose_y:=0.0 \
+  initial_pose_yaw:=0.0
+```
