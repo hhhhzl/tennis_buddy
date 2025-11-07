@@ -51,13 +51,12 @@ def generate_launch_description():
         package='tennisbuddy_planning',
         executable='nav2_goal_pusher',
         output='screen',
-        parameters=[
-            sources_yaml,
-            {
-                'use_sim_time': use_sim_time,
-                'odom_topic': '/odometry/filtered',
-            }
-        ],
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'odom_topic': '/odometry/filtered',
+            'frame_id': 'map',
+            'pickup_distance': 0.2,
+        }],
     )
 
     initial_pose_node = Node(

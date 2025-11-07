@@ -34,7 +34,7 @@ def generate_launch_description():
 
     declare_spawn_x_cmd = DeclareLaunchArgument(
         'spawn_x',
-        default_value='-0.0',
+        default_value='-5.0',
         description='Robot spawn X offset in Gazebo world coordinates')
 
     declare_spawn_y_cmd = DeclareLaunchArgument(
