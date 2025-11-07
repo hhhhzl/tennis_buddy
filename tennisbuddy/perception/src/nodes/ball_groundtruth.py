@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import math
-from typing import Optional
+from typing import List, Optional
 
 import rclpy
 from rclpy.node import Node
@@ -42,7 +42,7 @@ class BallGroundTruthRosGz(Node):
         self.truth_match_tol = float(self.get_parameter('truth_match_tolerance').value)
 
         self.robot_xy: Optional[tuple[float, float]] = None
-        self.truth_positions: Optional[list[tuple[float, float]]] = None
+        self.truth_positions: Optional[List[tuple[float, float]]] = None
 
         self.sub = self.create_subscription(PoseArray, self.in_topic, self.on_poses, 10)
         self.pub = self.create_publisher(PoseArray, self.out_topic, 10)

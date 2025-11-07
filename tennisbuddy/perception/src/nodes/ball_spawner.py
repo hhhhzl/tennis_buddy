@@ -82,6 +82,7 @@ class BallSpawnerRosGz(Node):
         successes = 0
         poses = PoseArray()
         poses.header.frame_id = 'map'
+        poses.header.stamp = self.get_clock().now().to_msg()
         for i in range(self.count):
             x = random.uniform(self.xmin, self.xmax)
             y = random.uniform(self.ymin, self.ymax)
