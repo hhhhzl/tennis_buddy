@@ -25,9 +25,13 @@ class Nav2GoalPusher(Node):
         super().__init__('nav2_goal_pusher')
         self.declare_parameter('pickup_distance', 0.35)
         self.declare_parameter('frame_id', 'map')
-        self.declare_parameter('odom_topic', '/odometry/filtered') 
+        self.declare_parameter('odom_topic', '/odometry/filtered')
+        self.declare_parameter('queue_max_targets', 15)
+        self.declare_parameter('min_clear_distance_multiplier', 1.2)
         self.pickup_d = float(self.get_parameter('pickup_distance').value)
         self.frame_id = self.get_parameter('frame_id').value
+        self.queue_max_targets = int(self.get_parameter('queue_max_targets').value)
+        self.min_clear_multiplier = float(self.get_parameter('min_clear_distance_multiplier').value)
 
         qos_sensor = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=5)
@@ -71,7 +75,23 @@ class Nav2GoalPusher(Node):
         if self.robot_xy is None:
             self.get_logger().warn('[nav2_goal_pusher] Robot position unknown (no odom data)')
             return
-        remaining = list(range(len(self.targets)))
+        if self.min_clear_multiplier <= 0.0:
+            min_dist = 0.0
+        else:
+            min_dist = self.pickup_d * self.min_clear_multiplier
+
+        remaining = [
+            i for i, target in enumerate(self.targets)
+            if np.linalg.norm(target - self.robot_xy) > min_dist
+        ]
+        if not remaining:
+            self.get_logger().warn('[nav2_goal_pusher] No targets outside pickup radius')
+            return
+
+        remaining.sort(key=lambda i: np.sum((self.targets[i] - self.robot_xy) ** 2))
+        if self.queue_max_targets > 0 and len(remaining) > self.queue_max_targets:
+            remaining = remaining[:self.queue_max_targets]
+
         pos = self.robot_xy.copy()
         while remaining:
             i = min(remaining, key=lambda k: np.sum((self.targets[k] - pos) ** 2))
