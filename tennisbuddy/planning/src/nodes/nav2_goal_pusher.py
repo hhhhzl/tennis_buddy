@@ -28,10 +28,12 @@ class Nav2GoalPusher(Node):
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('queue_max_targets', 15)
         self.declare_parameter('min_clear_distance_multiplier', 1.2)
+        self.declare_parameter('visit_distance_threshold', 0.25)
         self.pickup_d = float(self.get_parameter('pickup_distance').value)
         self.frame_id = self.get_parameter('frame_id').value
         self.queue_max_targets = int(self.get_parameter('queue_max_targets').value)
         self.min_clear_multiplier = float(self.get_parameter('min_clear_distance_multiplier').value)
+        self.visit_threshold = float(self.get_parameter('visit_distance_threshold').value)
 
         qos_sensor = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=5)
@@ -49,6 +51,8 @@ class Nav2GoalPusher(Node):
         self.targets = np.zeros((0, 2))
         self.work_queue = []
         self.sending = False
+        self.visited_targets = []
+        self.current_target = None
 
         self.get_logger().info('[nav2_goal_pusher] ready. Waiting for navigate_to_pose server...')
         self.ac.wait_for_server()
@@ -80,10 +84,13 @@ class Nav2GoalPusher(Node):
         else:
             min_dist = self.pickup_d * self.min_clear_multiplier
 
-        remaining = [
-            i for i, target in enumerate(self.targets)
-            if np.linalg.norm(target - self.robot_xy) > min_dist
-        ]
+        remaining = []
+        for i, target in enumerate(self.targets):
+            if np.linalg.norm(target - self.robot_xy) <= min_dist:
+                continue
+            if self._is_target_visited(target):
+                continue
+            remaining.append(i)
         if not remaining:
             self.get_logger().warn('[nav2_goal_pusher] No targets outside pickup radius')
             return
@@ -101,9 +108,16 @@ class Nav2GoalPusher(Node):
         self.get_logger().info(f'[nav2_goal_pusher] Built queue with {len(self.work_queue)} targets')
 
     def compute_pickup_pose(self, robot_xy, ball_xy):
+        vec = ball_xy - robot_xy
+        dist = np.linalg.norm(vec)
+        if dist <= 1e-6:
+            theta = 0.0
+        else:
+            theta = math.atan2(vec[1], vec[0])
+        desired_offset = max(0.0, min(self.pickup_d, dist - self.visit_threshold * 0.5))
         theta = math.atan2(ball_xy[1] - robot_xy[1], ball_xy[0] - robot_xy[0])
-        gx = ball_xy[0] - self.pickup_d * math.cos(theta)
-        gy = ball_xy[1] - self.pickup_d * math.sin(theta)
+        gx = ball_xy[0] - desired_offset * math.cos(theta)
+        gy = ball_xy[1] - desired_offset * math.sin(theta)
         return gx, gy, theta
 
     def tick(self):
@@ -114,6 +128,7 @@ class Nav2GoalPusher(Node):
         idx = self.work_queue.pop(0)
         ball = self.targets[idx]
         gx, gy, yaw = self.compute_pickup_pose(self.robot_xy, ball)
+        self.current_target = ball
 
         goal = NavigateToPose.Goal()
         ps = PoseStamped()
@@ -145,7 +160,22 @@ class Nav2GoalPusher(Node):
     def on_result(self, fut):
         result = fut.result().result
         self.get_logger().info(f'[nav2_goal_pusher] Goal finished with result: {result}')
+        if self.current_target is not None and self.robot_xy is not None:
+            dist = np.linalg.norm(self.current_target - self.robot_xy)
+            if dist <= max(self.visit_threshold, self.pickup_d * 0.8):
+                self._mark_target_visited(self.current_target)
+        self.current_target = None
         self.sending = False
+
+    def _mark_target_visited(self, target: np.ndarray):
+        self.visited_targets.append(target.copy())
+        self.get_logger().info(f'[nav2_goal_pusher] Marked target visited ({target[0]:.2f}, {target[1]:.2f})')
+
+    def _is_target_visited(self, target: np.ndarray) -> bool:
+        for vt in self.visited_targets:
+            if np.linalg.norm(vt - target) <= self.visit_threshold:
+                return True
+        return False
 
 
 def main():
