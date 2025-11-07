@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import math
-from typing import List, Optional
+from typing import Optional
 
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseArray, Pose
 from nav_msgs.msg import Odometry
-from ros_gz_interfaces.msg import ModelList
+from ros_gz_interfaces.msg import Pose_V
 
 
 class BallGroundTruthRosGz(Node):
@@ -25,10 +25,9 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('robot_odom_topic', '/odometry/filtered')
         self.declare_parameter('robot_exclusion_radius', 0.6)
         self.declare_parameter('ball_name_prefix', 'tennis_ball_')
-        self.declare_parameter('model_topic', '')
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
-        self.in_topic = f'/world/{self.world}/pose/info' 
+        self.in_topic = f'/world/{self.world}/pose/info'
         self.out_topic = self.get_parameter('out_topic').value
         self.frame_id = self.get_parameter('target_frame').value
         self.z_max = float(self.get_parameter('z_max').value)
@@ -42,16 +41,9 @@ class BallGroundTruthRosGz(Node):
         self.robot_exclusion_radius = float(self.get_parameter('robot_exclusion_radius').value)
         self.ball_name_prefix = self.get_parameter('ball_name_prefix').get_parameter_value().string_value
 
-        declared_model_topic = self.get_parameter('model_topic').get_parameter_value().string_value
-        if declared_model_topic:
-            self.model_topic = declared_model_topic
-        else:
-            self.model_topic = f'/world/{self.world}/model/info'
-
         self.robot_xy = None
-        self.model_names: List[str] = []
 
-        self.sub_model = self.create_subscription(ModelList, self.model_topic, self.on_models, 10)
+        self.sub = self.create_subscription(Pose_V, self.in_topic, self.on_pose_v, 10)
         self.pub = self.create_publisher(PoseArray, self.out_topic, 10)
 
         if self.robot_odom_topic:
@@ -64,7 +56,7 @@ class BallGroundTruthRosGz(Node):
             self.get_logger().warn('[gt_rosgz] robot_odom_topic empty; robot exclusion disabled')
 
         self.get_logger().info(
-            f'[gt_rosgz] listen {self.model_topic} -> publish {self.out_topic} (frame={self.frame_id})')
+            f'[gt_rosgz] listen {self.in_topic} -> publish {self.out_topic} (frame={self.frame_id})')
 
     def on_odom(self, msg: Odometry):
         self.robot_xy = (
@@ -72,7 +64,7 @@ class BallGroundTruthRosGz(Node):
             float(msg.pose.pose.position.y),
         )
 
-    def on_models(self, msg: ModelList):
+    def on_pose_v(self, msg: Pose_V):
         filtered = PoseArray()
         if hasattr(msg, "header"):
             filtered.header = msg.header
@@ -83,15 +75,11 @@ class BallGroundTruthRosGz(Node):
 
         candidates = []
         prefix = self.ball_name_prefix or ''
-        models: List = getattr(msg, 'models', [])
-        if not models and hasattr(msg, 'model'):
-            models = msg.model
-
-        for model in models:
-            name = getattr(model, 'name', '')
+        for pose_with_name in msg.poses:
+            name = getattr(pose_with_name, 'name', '')
             if prefix and not name.startswith(prefix):
                 continue
-            pose = getattr(model, 'pose', None)
+            pose = getattr(pose_with_name, 'pose', None)
             if pose is None:
                 continue
 
