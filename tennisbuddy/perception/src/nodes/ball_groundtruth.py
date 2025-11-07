@@ -58,10 +58,12 @@ class BallGroundTruthRosGz(Node):
             self.get_logger().warn('[gt_rosgz] robot_odom_topic empty; robot exclusion disabled')
 
         if self.truth_topic:
+            self.get_logger().info(
+                f'[gt_rosgz] here is truth topic {self.truth_topic}')
             self.sub_truth = self.create_subscription(
                 PoseArray, self.truth_topic, self.on_truth, 10)
             self.get_logger().info(
-                f'[gt_rosgz] receiving {len(self.truth_positions)} ball truth from {self.truth_topic} (tol={self.truth_match_tol:.2f} m)')
+                f'[gt_rosgz] receiving ball truth from {self.truth_topic} (tol={self.truth_match_tol:.2f} m)')
         else:
             self.sub_truth = None
 
