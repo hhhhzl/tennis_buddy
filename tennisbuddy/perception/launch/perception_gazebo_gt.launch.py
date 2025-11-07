@@ -16,7 +16,7 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/world/tennis_world/pose/info@ros_gz_interfaces/msg/Pose_V[gz.msgs.Pose_V',
+            '/world/tennis_world/dynamic_pose/info@ros_gz_interfaces/msg/EntityState[gz.msgs.Entities',
         ],
         output='screen'
     )
@@ -28,7 +28,7 @@ def generate_launch_description():
         parameters=[{
             'use_sim_time': use_sim_time,
             'world': world,  
-            'in_topic': '/world/tennis_world/pose/info',
+            'entity_topic': '/world/tennis_world/dynamic_pose/info',
             'ball_name_prefix': 'tennis_ball_',
             'out_topic': '/ball_positions',
             'target_frame': 'map',

@@ -6,7 +6,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseArray, Pose
 from nav_msgs.msg import Odometry
-from ros_gz_interfaces.msg import Pose_V
+from ros_gz_interfaces.msg import EntityState
 
 
 class BallGroundTruthRosGz(Node):
@@ -25,6 +25,7 @@ class BallGroundTruthRosGz(Node):
         self.declare_parameter('robot_odom_topic', '/odometry/filtered')
         self.declare_parameter('robot_exclusion_radius', 0.6)
         self.declare_parameter('ball_name_prefix', 'tennis_ball_')
+        self.declare_parameter('entity_topic', '')
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
         self.in_topic = f'/world/{self.world}/pose/info'
@@ -40,10 +41,12 @@ class BallGroundTruthRosGz(Node):
         self.robot_odom_topic = self.get_parameter('robot_odom_topic').get_parameter_value().string_value
         self.robot_exclusion_radius = float(self.get_parameter('robot_exclusion_radius').value)
         self.ball_name_prefix = self.get_parameter('ball_name_prefix').get_parameter_value().string_value
+        entity_topic_param = self.get_parameter('entity_topic').get_parameter_value().string_value
+        self.entity_topic = entity_topic_param or f'/world/{self.world}/dynamic_pose/info'
 
         self.robot_xy = None
 
-        self.sub = self.create_subscription(Pose_V, self.in_topic, self.on_pose_v, 10)
+        self.sub = self.create_subscription(EntityState, self.entity_topic, self.on_entity_state, 10)
         self.pub = self.create_publisher(PoseArray, self.out_topic, 10)
 
         if self.robot_odom_topic:
@@ -56,7 +59,7 @@ class BallGroundTruthRosGz(Node):
             self.get_logger().warn('[gt_rosgz] robot_odom_topic empty; robot exclusion disabled')
 
         self.get_logger().info(
-            f'[gt_rosgz] listen {self.in_topic} -> publish {self.out_topic} (frame={self.frame_id})')
+            f'[gt_rosgz] listen {self.entity_topic} -> publish {self.out_topic} (frame={self.frame_id})')
 
     def on_odom(self, msg: Odometry):
         self.robot_xy = (
@@ -64,22 +67,21 @@ class BallGroundTruthRosGz(Node):
             float(msg.pose.pose.position.y),
         )
 
-    def on_pose_v(self, msg: Pose_V):
+    def on_entity_state(self, msg: EntityState):
+        if not msg.entities:
+            return
+
         filtered = PoseArray()
-        if hasattr(msg, "header"):
-            filtered.header = msg.header
-            filtered.header.frame_id = self.frame_id or filtered.header.frame_id
-        else:
-            filtered.header.frame_id = self.frame_id
-            filtered.header.stamp = self.get_clock().now().to_msg()
+        filtered.header.frame_id = self.frame_id
+        filtered.header.stamp = self.get_clock().now().to_msg()
 
         candidates = []
         prefix = self.ball_name_prefix or ''
-        for pose_with_name in msg.poses:
-            name = getattr(pose_with_name, 'name', '')
+        for entity in msg.entities:
+            name = getattr(entity, 'name', '')
             if prefix and not name.startswith(prefix):
                 continue
-            pose = getattr(pose_with_name, 'pose', None)
+            pose = getattr(entity, 'pose', None)
             if pose is None:
                 continue
 
