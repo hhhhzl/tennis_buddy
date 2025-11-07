@@ -284,6 +284,8 @@ global_costmap:
     ros__parameters:
       update_frequency: 1.0
       publish_frequency: 1.0
+      width: 40.0 # tennis court width (36.57 m)
+      height: 40.0 # tennis court height (18.29 m)
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
@@ -292,7 +294,7 @@ global_costmap:
       footprint_padding: 0.025
       resolution: 0.05
       track_unknown_space: True
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      plugins: ["obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
