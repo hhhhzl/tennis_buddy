@@ -27,13 +27,15 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'world': world,  
-            'in_topic': '/world/tennis_world/pose/info', 
+            'world': world,
+            'in_topic': '/world/tennis_world/pose/info',
             'out_topic': '/ball_positions',
             'target_frame': 'map',
             'z_max': 0.25,
             'xmin': -4.0, 'xmax': 4.0, 'ymin': -7.0, 'ymax': 7.0,
-            'max_balls': 60,
+            'max_balls': 15,
+            'robot_odom_topic': '/odometry/filtered',
+            'robot_exclusion_radius': 0.6,
         }]
     )
 

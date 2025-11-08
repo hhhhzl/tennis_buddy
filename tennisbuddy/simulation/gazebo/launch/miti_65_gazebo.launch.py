@@ -16,6 +16,8 @@ def generate_launch_description():
     urdf = os.path.join(get_package_share_directory(
         'tennisbuddy_description'), 'urdf', 'miti_65.urdf')
     world = LaunchConfiguration('world')
+    spawn_x = LaunchConfiguration('spawn_x')
+    spawn_y = LaunchConfiguration('spawn_y')
 
     robot_desc = ParameterValue(Command(['xacro ', urdf]),
                                 value_type=str)
@@ -29,6 +31,16 @@ def generate_launch_description():
         'world',
         default_value='court.sdf',
         description='World file to use in Gazebo')
+
+    declare_spawn_x_cmd = DeclareLaunchArgument(
+        'spawn_x',
+        default_value='-5.0',
+        description='Robot spawn X offset in Gazebo world coordinates')
+
+    declare_spawn_y_cmd = DeclareLaunchArgument(
+        'spawn_y',
+        default_value='0.0',
+        description='Robot spawn Y offset in Gazebo world coordinates')
 
     gz_world_arg = PathJoinSubstitution([
         get_package_share_directory('tennisbuddy_gazebo'), 'worlds', world])
@@ -51,7 +63,8 @@ def generate_launch_description():
             "-name", "rover_miti_65",
             "-allow_renaming", "true",
             "-z", "0.1",
-            "-x", "-5"
+            "-x", spawn_x,
+            "-y", spawn_y,
         ]
     )
 
@@ -102,6 +115,8 @@ def generate_launch_description():
     # Declare the launch options
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_world_cmd)
+    ld.add_action(declare_spawn_x_cmd)
+    ld.add_action(declare_spawn_y_cmd)
 
     # Launch Gazebo
     ld.add_action(gz_sim)

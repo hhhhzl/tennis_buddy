@@ -3,7 +3,7 @@ import random
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseArray
 from ros_gz_interfaces.srv import SpawnEntity  # /world/<world>/create
 
 SDF_TPL = """<?xml version='1.0'?>
@@ -37,9 +37,9 @@ class BallSpawnerRosGz(Node):
         self.declare_parameter('world', 'tennis_world')
         self.declare_parameter('count', 15)
         self.declare_parameter('xmin', -3.5)
-        self.declare_parameter('xmax', 3.5)
-        self.declare_parameter('ymin', -6.0)
-        self.declare_parameter('ymax', 6.0)
+        self.declare_parameter('xmax', -1.0)
+        self.declare_parameter('ymin', -1.0)
+        self.declare_parameter('ymax', 1.0)
         self.declare_parameter('z', 0.065)
         self.declare_parameter('radius', 0.065)
         self.declare_parameter('mass', 0.057)
@@ -47,6 +47,7 @@ class BallSpawnerRosGz(Node):
         self.declare_parameter('seed', 0)
         self.declare_parameter('color', [1.0, 1.0, 0.0])
         self.declare_parameter('allow_renaming', False)
+        self.declare_parameter('spawned_topic', '/ball_spawned_truth')
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
         self.count = int(self.get_parameter('count').value)
@@ -62,35 +63,26 @@ class BallSpawnerRosGz(Node):
         color = self.get_parameter('color').value
         self.r, self.g, self.b = [float(c) for c in color]
         self.allow_renaming = bool(self.get_parameter('allow_renaming').value)
+        self.spawned_topic = self.get_parameter('spawned_topic').get_parameter_value().string_value
 
         if self.seed > 0:
             random.seed(self.seed)
 
-        # ros_gz ：/world/<world>/create
+        self.spawned_pub = self.create_publisher(PoseArray, self.spawned_topic, 10)
+
         service_name = f'/world/{self.world}/create'
         self.cli = self.create_client(SpawnEntity, service_name)
         self.get_logger().info(f'[spawner] waiting for {service_name} ...')
         self.cli.wait_for_service()
         self.get_logger().info(f'[spawner] service available: {service_name}')
 
-        import time
-        timeout_sec = 10.0
-        start_time = time.time()
-
-        while not self.cli.service_is_ready():
-            if time.time() - start_time > timeout_sec:
-                self.get_logger().error(
-                    f'[spawner] Service {service_name} not available after {timeout_sec} seconds!')
-                self.get_logger().error('[spawner] Exiting...')
-                return
-            self.get_logger().info(f'[spawner] Waiting for service... ({time.time() - start_time:.1f}s)')
-            rclpy.spin_once(self, timeout_sec=0.5)
-
-        self.get_logger().info(f'[spawner] service available: {service_name}')
         self.spawn_all()
 
     def spawn_all(self):
         successes = 0
+        poses = PoseArray()
+        poses.header.frame_id = 'map'
+        poses.header.stamp = self.get_clock().now().to_msg()
         for i in range(self.count):
             x = random.uniform(self.xmin, self.xmax)
             y = random.uniform(self.ymin, self.ymax)
@@ -114,8 +106,19 @@ class BallSpawnerRosGz(Node):
             if res and res.success:
                 successes += 1
                 self.get_logger().info(f'[spawner] spawned {name} at ({x:.2f},{y:.2f})')
+                pose = Pose()
+                pose.position.x = x
+                pose.position.y = y
+                pose.position.z = 0.0
+                pose.orientation.w = 1.0
+                poses.poses.append(pose)
             else:
                 self.get_logger().warn(f'[spawner] FAILED: {name}')
+
+        if poses.poses:
+            self.spawned_pub.publish(poses)
+            self.get_logger().info(
+                f'[spawner] published ground truth for {len(poses.poses)} balls -> {self.spawned_topic}')
 
         self.get_logger().info(f'[spawner] done. success={successes}/{self.count}')
 

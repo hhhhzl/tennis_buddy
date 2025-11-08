@@ -9,6 +9,7 @@ install(PROGRAMS
   scripts/nav2_path_bridge
   scripts/planner_node
   scripts/traj_tracker
+  scripts/publish_initial_pose
   DESTINATION lib/${PROJECT_NAME}
 )
 

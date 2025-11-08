@@ -216,3 +216,9 @@ realsense:
     usb_port_id: ''
     use_sim_time: false
     wait_for_device_timeout: -1.0
+
+ball_groundtruth:
+  ros__parameters:
+    max_balls: 15
+    robot_odom_topic: /odometry/filtered
+    robot_exclusion_radius: 0.6
