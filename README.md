@@ -21,10 +21,15 @@ source /opt/ros/humble/setup.bash
 Build
 ```commandline
 cd tennisbuddy 
-# ./tennisbuddy/tennisbuddy
+# make sure you are under ./tennis_buddy/tennisbuddy
 
 colcon build
 source install/setup.sh
+```
+
+## Run
+```commandline
+ros2 launch tennisbuddy_ros2_control miti_65.launch.py
 ```
 
 ## Simulation
