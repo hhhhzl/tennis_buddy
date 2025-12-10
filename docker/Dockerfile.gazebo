@@ -1,0 +1,56 @@
+# Gazebo Simulator Dockerfile
+# Extends base image with Gazebo
+# syntax=docker/dockerfile:1
+
+FROM tennisbuddy:base AS gazebo
+
+ARG ROS_DISTRO=humble
+ENV ROS_DISTRO=${ROS_DISTRO}
+
+############################
+# GUI: Xfce + TigerVNC + noVNC
+############################
+RUN apt-get update && apt-get install -y \
+    curl wget gnupg2 lsb-release \
+    git sudo nano vim bash-completion \
+    net-tools iputils-ping \
+    supervisor \
+    tigervnc-standalone-server tigervnc-common \
+    xfce4 xfce4-terminal dbus-x11 x11-xserver-utils \
+    novnc websockify \
+    locales gnupg2 \
+    && rm -rf /var/lib/apt/lists/*
+
+############################
+# Gazebo dependencies
+############################
+RUN apt-get update && apt-get install -y \
+    ros-${ROS_DISTRO}-ros-gz \
+    ros-${ROS_DISTRO}-ros-gz-sim \
+    ros-${ROS_DISTRO}-ros-gz-bridge \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DISPLAY=:1
+ENV VNC_PASSWORD=tennisbuddy
+ENV ROS_DOMAIN_ID=0
+EXPOSE 5901 6080 11811 7400 7500
+
+# Install desktop in vnc
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openbox xterm x11-apps \
+    mesa-utils libgl1-mesa-dri \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy scripts and configs
+COPY docker/entrypoints/entrypoint-gazebo.sh /usr/local/bin/entrypoint-gazebo.sh
+COPY docker/configs/supervisord-gazebo.conf /etc/supervisor/conf.d/supervisord.conf
+COPY scripts/utils/start-vnc.sh /usr/local/bin/start-vnc.sh
+COPY scripts/utils/start-gazebo.sh /usr/local/bin/start-gazebo.sh
+
+RUN chmod +x /usr/local/bin/entrypoint-gazebo.sh \
+    /usr/local/bin/start-vnc.sh \
+    /usr/local/bin/start-gazebo.sh
+
+USER root
+ENTRYPOINT ["/usr/local/bin/entrypoint-gazebo.sh"]
+CMD ["/bin/bash"]

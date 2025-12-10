@@ -1,0 +1,55 @@
+# Isaac ROS Bridge Configuration
+# This file configures the ROS2-Isaac Sim bridge topics
+
+# ROS2 topics that map to Isaac Sim
+topics:
+  # Command velocity (ROS2 -> Isaac Sim)
+  cmd_vel:
+    ros_topic: "/cmd_vel"
+    isaac_topic: "/isaac/cmd_vel"
+    type: "geometry_msgs/msg/Twist"
+    direction: "ros_to_isaac"
+
+  # Odometry (Isaac Sim -> ROS2)
+  odometry:
+    ros_topic: "/odometry/wheels"
+    isaac_topic: "/isaac/odometry"
+    type: "nav_msgs/msg/Odometry"
+    direction: "isaac_to_ros"
+
+  # Joint states (Isaac Sim -> ROS2)
+  joint_states:
+    ros_topic: "/joint_states"
+    isaac_topic: "/isaac/joint_states"
+    type: "sensor_msgs/msg/JointState"
+    direction: "isaac_to_ros"
+
+  # Laser scan (Isaac Sim -> ROS2)
+  scan:
+    ros_topic: "/scan"
+    isaac_topic: "/isaac/scan"
+    type: "sensor_msgs/msg/LaserScan"
+    direction: "isaac_to_ros"
+
+  # IMU data (Isaac Sim -> ROS2)
+  imu:
+    ros_topic: "/imu/data"
+    isaac_topic: "/isaac/imu"
+    type: "sensor_msgs/msg/Imu"
+    direction: "isaac_to_ros"
+
+  # Clock (Isaac Sim -> ROS2)
+  clock:
+    ros_topic: "/clock"
+    isaac_topic: "/isaac/clock"
+    type: "rosgraph_msgs/msg/Clock"
+    direction: "isaac_to_ros"
+
+# Service bridges (if needed)
+services:
+  # Spawn entity service (for ball spawning, etc.)
+  spawn_entity:
+    ros_service: "/spawn_entity"
+    isaac_service: "/isaac/spawn_entity"
+    type: "isaac_ros_interfaces/srv/SpawnEntity"
+    direction: "ros_to_isaac"

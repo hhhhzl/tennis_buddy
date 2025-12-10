@@ -1,0 +1,44 @@
+# Exploration parameters for tennis ball collection
+
+exploration_waypoint_manager:
+  ros__parameters:
+    frame_id: map
+    odom_topic: /odometry/filtered
+    waypoint_spacing: 1.0  # meters between waypoints
+    exploration_area_min_x: 0.0
+    exploration_area_max_x: 4.0
+    exploration_area_min_y: -1.0
+    exploration_area_max_y: 1.0
+    
+    # Set to true to use predefined waypoints, false to auto-generate grid
+    use_predefined_waypoints: false
+    
+    # Predefined waypoints: [x, y, yaw]
+    # Example for tennis court exploration:
+    predefined_waypoints: []
+      # - [-8.0, -6.0, 0.0]
+      # - [-8.0, 0.0, 0.0]
+      # - [-8.0, 6.0, 0.0]
+      # - [0.0, 6.0, 1.57]
+      # - [8.0, 6.0, 0.0]
+      # - [8.0, 0.0, 3.14]
+      # - [8.0, -6.0, 0.0]
+      # - [0.0, -6.0, -1.57]
+      # - [-4.0, -3.0, 0.0]
+      # - [4.0, 3.0, 0.0]
+
+exploration_ball_collector:
+  ros__parameters:
+    frame_id: map
+    odom_topic: /odometry/filtered
+    ball_positions_topic: /ball_positions
+    exploration_waypoints_topic: /exploration_waypoints
+    pickup_distance: 0.1  # meters - distance to stop from ball
+    ball_detection_timeout: 15.0  # seconds - how long to remember ball after detection lost
+    waypoint_visit_threshold: 0.5  # meters - distance to consider waypoint as visited
+    use_navigate_through_poses: true  # Use NavigateThroughPoses (recommended) or NavigateToPose
+    scan_at_waypoint: true  # Enable scanning at waypoints for better detection
+    scan_duration: 2.0  # seconds - how long to scan at each waypoint
+    waypoint_arrival_threshold: 0.3  # meters - distance to consider arrived at waypoint
+    immediate_ball_response: true  # Cancel exploration immediately when ball is detected
+

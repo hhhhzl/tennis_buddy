@@ -1,0 +1,7 @@
+[submodule "deps/bno055"]
+	path = deps/bno055
+	url = https://github.com/flynneva/bno055.git
+[submodule "deps/rplidar_ros"]
+	path = deps/rplidar_ros
+	url = https://github.com/Slamtec/rplidar_ros.git
+	branch = ros2
