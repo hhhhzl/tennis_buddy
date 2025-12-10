@@ -34,25 +34,33 @@ echo "Cloud IP: $CLOUD_IP"
 echo "Component: $COMPONENT"
 echo ""
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
 case $COMPONENT in
     gazebo)
         echo "[INFO] Starting Gazebo on cloud device..."
-        ./scripts/start/gazebo/start-gazebo-cloud.sh
+        cd "$PROJECT_ROOT"
+        "$PROJECT_ROOT/scripts/start/gazebo/start-gazebo-cloud.sh"
         ;;
     driver)
         echo "[INFO] Starting driver on Nano..."
         echo "[INFO] Run this command on Nano device!"
-        ./scripts/start/driver/start-driver-nano.sh "$CLOUD_IP"
+        cd "$PROJECT_ROOT"
+        "$PROJECT_ROOT/scripts/start/driver/start-driver-nano.sh" "$CLOUD_IP"
         ;;
     nav)
         echo "[INFO] Starting navigation on cloud..."
         echo "[INFO] Run this command on cloud device!"
-        ./scripts/start/nav/start-nav-cloud.sh
+        cd "$PROJECT_ROOT"
+        "$PROJECT_ROOT/scripts/start/nav/start-nav-cloud.sh"
         ;;
     cv)
         echo "[INFO] Starting CV/perception on cloud..."
         echo "[INFO] Run this command on cloud device!"
-        ./scripts/start/cv/start-cv-cloud.sh
+        cd "$PROJECT_ROOT"
+        "$PROJECT_ROOT/scripts/start/cv/start-cv-cloud.sh"
         ;;
     all)
         echo "======================================"
