@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Start CV/Perception - can run on any device
-# Usage: ./scripts/start-cv-universal.sh <cloud_ip> [world] [ball_count] [spawn_balls]
+# Usage: ./scripts/start/cv/start-cv-universal.sh <cloud_ip> [world] [ball_count] [spawn_balls]
 
 set -e
+
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 CLOUD_IP=${1}
 if [ -z "$CLOUD_IP" ]; then
@@ -19,4 +23,5 @@ if [ -z "$CLOUD_IP" ]; then
 fi
 
 shift  # Remove cloud_ip from args
-./scripts/start-component.sh cv "$CLOUD_IP" "$@"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/scripts/start/component/start-component.sh" cv "$CLOUD_IP" "$@"
