@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- FastDDS Configuration for Isaac Sim ROS2 Bridge -->
+<!-- This is an example configuration file -->
+<!-- To use: Copy this file to docker/configs/fastdds.xml and uncomment the COPY line in Dockerfile.isaac-sim -->
+
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <!-- Default profile for ROS2 communication with Isaac Sim -->
+    <participant profile_name="default" is_default_profile="true">
+        <rtps>
+            <!-- Use shared memory transport for better performance (if available) -->
+            <useBuiltinTransports>false</useBuiltinTransports>
+            
+            <!-- Transport descriptors -->
+            <userTransports>
+                <transport_descriptor>
+                    <transport_id>udp_transport</transport_id>
+                    <type>UDPv4</type>
+                </transport_descriptor>
+            </userTransports>
+            
+            <!-- Locators for discovery -->
+            <builtin>
+                <discovery_config>
+                    <discoveryProtocol>SIMPLE</discoveryProtocol>
+                    <use_SIMPLE_EndpointDiscoveryProtocol>true</use_SIMPLE_EndpointDiscoveryProtocol>
+                    <use_STATIC_EndpointDiscoveryProtocol>false</use_STATIC_EndpointDiscoveryProtocol>
+                </discovery_config>
+            </builtin>
+        </rtps>
+    </participant>
+    
+    <!-- Profile for high-frequency topics (e.g., /cmd_vel, /scan) -->
+    <data_writer profile_name="high_frequency">
+        <qos>
+            <reliability>
+                <kind>BEST_EFFORT</kind>
+            </reliability>
+            <durability>
+                <kind>VOLATILE</kind>
+            </durability>
+        </qos>
+    </data_writer>
+    
+    <!-- Profile for reliable topics (e.g., /odometry) -->
+    <data_writer profile_name="reliable">
+        <qos>
+            <reliability>
+                <kind>RELIABLE</kind>
+            </reliability>
+            <durability>
+                <kind>VOLATILE</kind>
+            </durability>
+        </qos>
+    </data_writer>
+</profiles>

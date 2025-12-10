@@ -440,8 +440,33 @@ colcon build
 source install/setup.bash
 
 # Note: Isaac Sim should be running with ROS2 bridge extension enabled
+# The ROS2 bridge is automatically configured via environment variables:
+# - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+# - LD_LIBRARY_PATH includes Isaac Sim ROS2 bridge libraries
+# - AMENT_PREFIX_PATH=/opt/ros/humble
+
 # Launch ROS2 nodes
 ros2 launch tennisbuddy_isaac_sim miti_65_isaac_sim.launch.py world:=court.usd
+```
+
+### ROS2 Bridge Configuration
+
+The Dockerfile automatically configures ROS2 bridge for Isaac Sim:
+
+- **RMW Implementation**: Set to `rmw_fastrtps_cpp` (required for Isaac Sim)
+- **Library Path**: Automatically includes Isaac Sim's ROS2 bridge extension libraries
+- **FastDDS**: Default configuration is used (custom config can be added if needed)
+
+To verify ROS2 bridge is configured:
+```bash
+# Check RMW implementation
+echo $RMW_IMPLEMENTATION  # Should output: rmw_fastrtps_cpp
+
+# Check library path
+echo $LD_LIBRARY_PATH | grep isaac-sim  # Should include Isaac Sim bridge path
+
+# Test ROS2 topics (after launching Isaac Sim with bridge enabled)
+ros2 topic list  # Should see topics from Isaac Sim
 ```
 
 ---

@@ -85,13 +85,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 ############################
-# Isaac ROS Bridge setup
+# ROS2 Bridge for Isaac Sim
 ############################
-# Note: Isaac ROS Bridge should be installed in workspace
-# as it needs to be built against the Isaac Sim environment
+# Configure ROS2 to use FastRTPS (required for Isaac Sim ROS2 bridge)
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+# Set up ROS2 bridge library path (Isaac Sim's built-in ROS2 bridge)
+# The bridge extension is located in Isaac Sim's extensions directory
+RUN echo "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> /etc/bash.bashrc && \
+    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/isaac-sim/exts/omni.isaac.ros2_bridge/humble/lib" >> /etc/bash.bashrc && \
+    echo "export AMENT_PREFIX_PATH=/opt/ros/humble" >> /etc/bash.bashrc
+
+# Create FastDDS configuration directory
+RUN mkdir -p /root/.ros
+
+# Note: FastDDS configuration file (fastdds.xml) can be copied here if needed
+# For now, we'll use default FastDDS settings
+# If you need custom FastDDS configuration, uncomment and add your config:
+# COPY docker/configs/fastdds.xml /root/.ros/fastdds.xml
+# RUN chmod 644 /root/.ros/fastdds.xml
+# RUN echo "export FASTRTPS_DEFAULT_PROFILES_FILE=~/.ros/fastdds.xml" >> /etc/bash.bashrc
+
+############################
+# Isaac ROS Bridge workspace (optional - for external bridge)
+############################
+# Note: Isaac Sim has a built-in ROS2 bridge extension (omni.isaac.ros2_bridge)
+# If you need additional Isaac ROS packages, create workspace here
 WORKDIR /workspace
 
-# Create workspace for Isaac ROS Bridge
+# Create workspace for Isaac ROS Bridge (if needed for additional packages)
 RUN mkdir -p /workspace/isaac_ros_ws/src
 
 ############################
