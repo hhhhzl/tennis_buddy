@@ -8,8 +8,16 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
+# Install directories
 install(
-  DIRECTORY launch worlds scripts config
+  DIRECTORY launch scripts config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install worlds directory (created by generate_all_worlds.py script)
+# Create empty directory if it doesn't exist to avoid build errors
+install(
+  DIRECTORY worlds
   DESTINATION share/${PROJECT_NAME}
 )
 
