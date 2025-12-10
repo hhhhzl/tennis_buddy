@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Start Driver - can run on any device
-# Usage: ./scripts/start-driver-universal.sh <cloud_ip>
+# Usage: ./scripts/start/driver/start-driver-universal.sh <cloud_ip>
 
 set -e
+
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 CLOUD_IP=${1}
 if [ -z "$CLOUD_IP" ]; then
@@ -11,4 +15,5 @@ if [ -z "$CLOUD_IP" ]; then
     exit 1
 fi
 
-./scripts/start-component.sh driver "$CLOUD_IP"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/scripts/start/component/start-component.sh" driver "$CLOUD_IP"

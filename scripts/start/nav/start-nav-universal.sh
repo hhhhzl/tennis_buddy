@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Start Navigation - can run on any device
-# Usage: ./scripts/start-nav-universal.sh <cloud_ip> [map_file] [slam=true/false]
+# Usage: ./scripts/start/nav/start-nav-universal.sh <cloud_ip> [map_file] [slam=true/false]
 
 set -e
+
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 CLOUD_IP=${1}
 if [ -z "$CLOUD_IP" ]; then
@@ -18,4 +22,5 @@ if [ -z "$CLOUD_IP" ]; then
 fi
 
 shift  # Remove cloud_ip from args
-./scripts/start-component.sh nav "$CLOUD_IP" "$@"
+cd "$PROJECT_ROOT"
+"$PROJECT_ROOT/scripts/start/component/start-component.sh" nav "$CLOUD_IP" "$@"

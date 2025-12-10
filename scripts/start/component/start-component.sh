@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Universal component launcher - can run any component on any device
-# Usage: ./scripts/start-component.sh <component> <cloud_ip> [component_args...]
+# Usage: ./scripts/start/component/start-component.sh <component> <cloud_ip> [component_args...]
 
 set -e
 
@@ -83,7 +83,7 @@ case $COMPONENT in
         ;;
     driver)
         DOCKER_IMAGE="tennisbuddy:nodes"
-        LAUNCH_CMD="ros2 launch tennisbuddy_ros2_control miti_65.launch.py use_sim_time:=true"
+        LAUNCH_CMD="ros2 launch tennisbuddy_ros2_control miti_65.launch.py"
         DOCKER_OPTS="--network host --device=/dev/ttyUSB0 --device=/dev/ttyUSB1 --device=/dev/ttyACM0 --device=/dev/ttyACM1"
         ;;
     nav)
