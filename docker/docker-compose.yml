@@ -1,0 +1,89 @@
+version: '3.8'
+
+# Docker Compose configuration for Tennisbuddy
+# Supports both Gazebo and Isaac Sim simulators
+
+services:
+  # Gazebo simulator service
+  gazebo:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: humble
+        SIM: gazebo
+        BASE_IMAGE: ubuntu:22.04
+    image: tennisbuddy:gazebo
+    container_name: tennisbuddy_gazebo
+    ports:
+      - "5901:5901"  # VNC port
+      - "6080:6080"  # noVNC web port
+    volumes:
+      - ../:/workspace/tennisbuddy
+    environment:
+      - SIMULATOR=gazebo
+      - DISPLAY=:1
+      - VNC_PASSWORD=tennisbuddy
+    stdin_open: true
+    tty: true
+    networks:
+      - tennisbuddy_net
+
+  # Isaac Sim simulator service (requires NVIDIA GPU)
+  isaac_sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: humble
+        SIM: isaac_sim
+        BASE_IMAGE: nvcr.io/nvidia/isaac-sim:2023.1.1
+    image: tennisbuddy:isaac_sim
+    container_name: tennisbuddy_isaac_sim
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "5902:5901"  # VNC port (different from Gazebo)
+      - "6081:6080"  # noVNC web port (different from Gazebo)
+    volumes:
+      - ../:/workspace/tennisbuddy
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - SIMULATOR=isaac_sim
+      - DISPLAY=:1
+      - VNC_PASSWORD=tennisbuddy
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    stdin_open: true
+    tty: true
+    networks:
+      - tennisbuddy_net
+    # Uncomment to run Isaac Sim (requires NVIDIA GPU)
+    # profiles:
+    #   - isaac
+
+networks:
+  tennisbuddy_net:
+    driver: bridge
+
+# Usage:
+# 
+# Start Gazebo:
+#   docker-compose up gazebo
+#
+# Start Isaac Sim:
+#   docker-compose up isaac_sim
+#
+# Start both (if you have multiple GPUs):
+#   docker-compose up
+#
+# Access Gazebo GUI:
+#   http://localhost:6080/vnc.html
+#
+# Access Isaac Sim GUI:
+#   http://localhost:6081/vnc.html

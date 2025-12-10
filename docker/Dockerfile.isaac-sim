@@ -1,20 +1,21 @@
+# Isaac Sim specific Dockerfile
+# This is an example Dockerfile for Isaac Sim - customize as needed
+
 # syntax=docker/dockerfile:1
+
+############################
+# Use NVIDIA Isaac Sim base image
+############################
+ARG ISAAC_SIM_VERSION=2023.1.1
+FROM nvcr.io/nvidia/isaac-sim:${ISAAC_SIM_VERSION} AS base
 
 ############################
 # Build args
 ############################
 ARG UBUNTU_VERSION=22.04
 ARG ROS_DISTRO=humble
-ARG SIM=gazebo
-# if isaac，BASE_IMAGE=nvcr.io/nvidia/isaac-sim:2023.1.1
-ARG BASE_IMAGE=ubuntu:${UBUNTU_VERSION}
+ARG SIM=isaac_sim
 
-FROM ${BASE_IMAGE} AS base
-
-# Re-declare ARGs in this stage and export to ENV
-ARG UBUNTU_VERSION
-ARG ROS_DISTRO
-ARG SIM
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
@@ -52,8 +53,6 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-joint-state-publisher \
     ros-${ROS_DISTRO}-xacro \
     ros-${ROS_DISTRO}-joy-linux \
-    ros-${ROS_DISTRO}-ros-gz-interfaces \
-    ros-${ROS_DISTRO}-ros-gz-bridge \
     python3-colcon-common-extensions \
  && rm -rf /var/lib/apt/lists/*
 
@@ -71,69 +70,55 @@ RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server tigervnc-common \
     xfce4 xfce4-terminal dbus-x11 x11-xserver-utils \
     novnc websockify \
-    # For ROS2/Gazebo
+    # For ROS2
     locales gnupg2 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV DISPLAY=:1
-# Consider passing this at runtime instead of baking into image:
-# docker run -e VNC_PASSWORD=...
 ENV VNC_PASSWORD=tennisbuddy
 EXPOSE 5901 6080
 
-# install desktop in vnc
+# Install desktop in vnc
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openbox xterm x11-apps \
     mesa-utils libgl1-mesa-dri \
  && rm -rf /var/lib/apt/lists/*
 
 ############################
-# Gazebo / Isaac dependencies
+# Isaac ROS Bridge setup
 ############################
-# Sim selector (no tricky quoting needed)
-RUN if [ "$SIM" = "gazebo" ]; then \
-      apt-get update && apt-get install -y \
-        ros-${ROS_DISTRO}-ros-gz \
-        ros-${ROS_DISTRO}-ros-gz-sim \
-        && rm -rf /var/lib/apt/lists/* ; \
-    fi
+# Note: Isaac ROS Bridge should be installed in workspace
+# as it needs to be built against the Isaac Sim environment
+WORKDIR /workspace
 
-# Isaac Sim support (when using NVIDIA base image)
-RUN if [ "$SIM" = "isaac_sim" ] || [ "$SIM" = "isaac" ]; then \
-      echo "[INFO] Building with Isaac Sim support"; \
-      echo "[INFO] Base image should be: nvcr.io/nvidia/isaac-sim:2023.1.1 (or later)"; \
-      echo "[INFO] Container must be run with: --gpus all"; \
-      # Install Isaac ROS Bridge dependencies (will be installed at runtime or via workspace) \
-      apt-get update && apt-get install -y \
-        python3-pip \
-        python3-colcon-common-extensions \
-        git \
-        && rm -rf /var/lib/apt/lists/* ; \
-      # Note: Isaac ROS Bridge should be installed in workspace \
-      # as it requires Isaac Sim to be available; \
-    fi
+# Create workspace for Isaac ROS Bridge
+RUN mkdir -p /workspace/isaac_ros_ws/src
 
+############################
+# Tennisbuddy workspace
+############################
 WORKDIR /workspace/tennisbuddy
 COPY docker/entrypoints/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY scripts/utils/start-vnc.sh /usr/local/bin/start-vnc.sh
-COPY scripts/utils/start-gazebo.sh /usr/local/bin/start-gazebo.sh
 COPY scripts/utils/start-isaac-sim.sh /usr/local/bin/start-isaac-sim.sh
 COPY docker/configs/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY .. /workspace/tennisbuddy
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     /usr/local/bin/start-vnc.sh \
-    /usr/local/bin/start-gazebo.sh \
     /usr/local/bin/start-isaac-sim.sh \
     /workspace/tennisbuddy/scripts/utils/start-isaac-sim.sh
 
 ############################
-# User
+# Final setup
 ############################
-# ENV USER=developer
-# RUN useradd -ms /bin/bash $USER && echo "$USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
 USER root
 SHELL ["/bin/bash", "-c"]
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/bin/bash"]
+
+# Build:
+# docker build -f docker/Dockerfile.isaac-sim -t tennisbuddy:isaac_sim .
+#
+# Run:
+# docker run -it --rm --gpus all -p 5901:5901 -p 6080:6080 tennisbuddy:isaac_sim

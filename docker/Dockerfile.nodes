@@ -1,0 +1,29 @@
+# ROS2 Nodes Dockerfile (for Nano)
+# Lightweight image for running ROS2 nodes
+# syntax=docker/dockerfile:1
+
+FROM tennisbuddy:base AS nodes
+
+ARG ROS_DISTRO=humble
+ENV ROS_DISTRO=${ROS_DISTRO}
+
+############################
+# Minimal dependencies for nodes
+############################
+RUN apt-get update && apt-get install -y \
+    sudo nano vim \
+    net-tools iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV ROS_DOMAIN_ID=0
+# ROS2 Discovery Server endpoint (will be set via environment)
+ENV ROS_DISCOVERY_SERVER=
+EXPOSE 11811 7400 7500
+
+# Copy entrypoint
+COPY docker/entrypoints/entrypoint-nodes.sh /usr/local/bin/entrypoint-nodes.sh
+RUN chmod +x /usr/local/bin/entrypoint-nodes.sh
+
+USER root
+ENTRYPOINT ["/usr/local/bin/entrypoint-nodes.sh"]
+CMD ["/bin/bash"]

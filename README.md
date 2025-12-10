@@ -7,8 +7,8 @@
 
 #### Requirements: 
   - ROS2
-  - Gazebo
-  - Isaac Lab (optional for Nvidia GPU purpose)
+  - Gazebo (default simulator)
+  - Isaac Sim (optional, for NVIDIA GPU acceleration)
 
 We provide docker container integration of stacks above, please check:
 [docker/readme.md](docker/README.md)
@@ -23,6 +23,7 @@ Build
 cd tennisbuddy 
 # make sure you are under ./tennis_buddy/tennisbuddy
 
+ln -s ../deps deps
 colcon build
 source install/setup.sh
 ```
@@ -33,11 +34,31 @@ ros2 launch tennisbuddy_ros2_control miti_65.launch.py
 ```
 
 ## Simulation
+
+### Gazebo (Default)
 Run in Gazebo:
 ```commandline
 ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf
 ```
 ![Running Tennisbuddy in Gazebo](./assets/gazebo_sim.png)
+
+### Isaac Sim (Optional, GPU-accelerated)
+Run in Isaac Sim:
+```commandline
+ros2 launch tennisbuddy_isaac_sim miti_65_isaac_sim.launch.py world:=court.usd
+```
+
+### Unified Launch (Choose Simulator)
+Choose between Gazebo and Isaac Sim:
+```commandline
+# Use Gazebo (default)
+ros2 launch tennisbuddy_simulation miti_65_sim.launch.py simulator:=gazebo world:=court
+
+# Use Isaac Sim
+ros2 launch tennisbuddy_simulation miti_65_sim.launch.py simulator:=isaac_sim world:=court
+```
+
+**Note**: Both simulators use the same ROS2 interface and topics, ensuring full compatibility. See [tennisbuddy/simulation/README.md](tennisbuddy/simulation/README.md) for details.
 
 
 ## Testing
