@@ -19,11 +19,8 @@ setup(
             'launch/planning_tennisbuddy.launch.py',
             'launch/planning_nav2_path.launch.py',
             'launch/planning_nav2_goal.launch.py',
-            'launch/planning_nav2_exploration.launch.py',
         ]),
-        ('share/' + ros_pkg_name + '/configs', [
-            'configs/exploration_params.yaml',
-        ]),
+        ('share/' + ros_pkg_name + '/configs', []),
         ('share/' + ros_pkg_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
@@ -36,8 +33,6 @@ setup(
             'nav2_goal_pusher = planning.nodes.nav2_goal_pusher:main',
             'publish_initial_pose = planning.nodes.publish_initial_pose:main',
             'nav2_path_bridge = planning.nodes.nav2_path_bridge:main',
-            'exploration_waypoint_manager = planning.nodes.exploration_waypoint_manager:main',
-            'exploration_ball_collector = planning.nodes.exploration_ball_collector:main',
         ],
     },
 )

@@ -18,7 +18,7 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, GroupAction,
-                            IncludeLaunchDescription, SetEnvironmentVariable)
+                            IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression, PathJoinSubstitution
@@ -82,7 +82,7 @@ def generate_launch_description():
 
     declare_slam_cmd = DeclareLaunchArgument(
         'slam',
-        default_value='False',
+        default_value='false',
         description='Whether run a SLAM')
 
     declare_map_yaml_cmd = DeclareLaunchArgument(
@@ -113,7 +113,7 @@ def generate_launch_description():
         description='Whether to respawn if a node crashes. Applied when composition is disabled.')
 
     declare_log_level_cmd = DeclareLaunchArgument(
-        'log_level', default_value='info',
+        'log_level', default_value='error',
         description='log level')
 
     rl_launch_path = os.path.join(get_package_share_directory("tennisbuddy_perception"), 'launch',
@@ -179,21 +179,56 @@ def generate_launch_description():
     declare_slam_map_file_cmd = DeclareLaunchArgument(
         'map_file_name',
         default_value='maze_map',
-        description='Full path to the ROS2 parameters file to use for the slam_toolbox node')
+        description='Full path or relative path to the map file (without .posegraph extension)')
 
-    map_file_arg = PathJoinSubstitution([
-        get_package_share_directory('tennisbuddy_ros2_control'), 'maps', map_file])
+    # Function to create SLAM node with proper path handling
+    def create_slam_node(context):
+        """Create SLAM node with path resolution for absolute vs relative paths."""
+        map_file_value = context.launch_configurations.get('map_file_name', 'maze_map')
+        
+        # If path is absolute (starts with '/'), use it directly
+        # Otherwise, join with package share directory
+        if map_file_value.startswith('/'):
+            resolved_map_path = map_file_value
+        else:
+            resolved_map_path = os.path.join(
+                get_package_share_directory('roverrobotics_driver'),
+                'maps',
+                map_file_value
+            )
+        
+        # Get other parameters from context using perform() method
+        # Handle LaunchConfiguration objects
+        if isinstance(slam_params_file, LaunchConfiguration):
+            slam_params = slam_params_file.perform(context)
+        else:
+            slam_params = str(slam_params_file)
+            
+        # use_sim_time must be a boolean, not a string
+        if isinstance(use_sim_time, LaunchConfiguration):
+            use_sim_time_str = use_sim_time.perform(context)
+            # Convert string to boolean
+            use_sim_time_val = use_sim_time_str.lower() in ('true', '1', 'yes', 'on')
+        else:
+            # If it's already a boolean, use it directly
+            if isinstance(use_sim_time, bool):
+                use_sim_time_val = use_sim_time
+            else:
+                use_sim_time_val = str(use_sim_time).lower() in ('true', '1', 'yes', 'on')
+        
+        return [Node(
+            parameters=[
+                slam_params,
+                {'use_sim_time': use_sim_time_val},
+                {'map_file_name': resolved_map_path}
+            ],
+            package='slam_toolbox',
+            executable='localization_slam_toolbox_node',
+            name='slam_toolbox',
+            output='screen'
+        )]
 
-    start_async_slam_toolbox_node = Node(
-        parameters=[
-            slam_params_file,
-            {'use_sim_time': use_sim_time},
-            {'map_file_name': map_file_arg}
-        ],
-        package='slam_toolbox',
-        executable='localization_slam_toolbox_node',
-        name='slam_toolbox',
-        output='screen')
+    start_async_slam_toolbox_node = OpaqueFunction(function=create_slam_node)
 
     # Create the launch description and populate
     ld = LaunchDescription()

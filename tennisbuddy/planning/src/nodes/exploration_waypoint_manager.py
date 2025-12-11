@@ -151,7 +151,7 @@ class ExplorationWaypointManager(Node):
             if i % 2 == 0:
                 x_list = xs
             else:
-                x_list = reversed(xs)
+                x_list = list(reversed(xs))
             
             for j, x in enumerate(x_list):
                 pose = Pose()
@@ -232,4 +232,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

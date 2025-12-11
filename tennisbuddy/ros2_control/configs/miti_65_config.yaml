@@ -4,8 +4,8 @@ tennisbuddy_ros2_control:
     # Robot Parameters
     drivetrain: "differential"   # differential, mecanum
     robot_type: "miti"
-    comm_type: "serial"
-    device_port: "/dev/ttyACM0" # "can0" for differential/mecanum | "internal" for differential/mecanum with blue-ox board
+    comm_type: "can"
+    device_port: "can0" # "can0" for differential/mecanum | "internal" for differential/mecanum with blue-ox board
 
     # Robot Kinematics
     wheel_radius: 0.08255  # Wheel radius (meters)

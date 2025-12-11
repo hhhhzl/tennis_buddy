@@ -24,7 +24,7 @@ def generate_launch_description():
         'params_file',
         default_value=os.path.join(get_package_share_directory('tennisbuddy_planning'),
                                    'configs', 'nav2_params.yaml'))
-    declare_map = DeclareLaunchArgument('map', default_value='')
+    declare_map = DeclareLaunchArgument('map', default_value='/home/autobots1/singleton.yaml')
     declare_slam = DeclareLaunchArgument('slam', default_value='False')
     declare_publish_initial_pose = DeclareLaunchArgument('publish_initial_pose', default_value='False')
     declare_initial_x = DeclareLaunchArgument('initial_pose_x', default_value='0.0')
@@ -101,7 +101,6 @@ def generate_launch_description():
         declare_initial_yaw,
         nav_frontend,
         initial_pose_node,
-        waypoint_manager,
-        ball_collector,
+        # waypoint_manager,
+        # ball_collector,
     ])
-

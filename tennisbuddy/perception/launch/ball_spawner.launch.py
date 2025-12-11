@@ -20,6 +20,12 @@ def generate_launch_description():
         DeclareLaunchArgument('seed', default_value='0'),
         DeclareLaunchArgument('allow_renaming', default_value='false'),
         DeclareLaunchArgument('color', default_value='[1.0,1.0,0.0]'),
+        # Coordinate offset: nav_coord = map_coord + offset
+        # If robot is at map(-5,0) but nav thinks it's at (0,0), set offset to (5,0)
+        DeclareLaunchArgument('nav_offset_x', default_value='0.0',
+                              description='X offset from map to nav coordinates'),
+        DeclareLaunchArgument('nav_offset_y', default_value='0.0',
+                              description='Y offset from map to nav coordinates'),
         Node(
             package='tennisbuddy_perception',
             executable='ball_spawner',
@@ -38,6 +44,8 @@ def generate_launch_description():
                 'seed': LaunchConfiguration('seed'),
                 'allow_renaming': LaunchConfiguration('allow_renaming'),
                 'color': LaunchConfiguration('color'),
+                'nav_offset_x': LaunchConfiguration('nav_offset_x'),
+                'nav_offset_y': LaunchConfiguration('nav_offset_y'),
             }]
         )
     ])

@@ -7,6 +7,8 @@ find_package(ament_cmake REQUIRED)
 install(PROGRAMS
   scripts/nav2_goal_pusher
   scripts/nav2_path_bridge
+  scripts/exploration_ball_collector
+  scripts/exploration_waypoint_manager
   scripts/planner_node
   scripts/traj_tracker
   scripts/publish_initial_pose

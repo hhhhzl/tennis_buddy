@@ -17,7 +17,7 @@ def generate_launch_description():
     publish_initial_pose = LaunchConfiguration('publish_initial_pose')
     initial_x = LaunchConfiguration('initial_pose_x')
     initial_y = LaunchConfiguration('initial_pose_y')
-    initial_yaw = LaunchConfiguration('initial_pose_yaw')
+    # initial_yaw = LaunchConfiguration('initial_pose_yaw')
 
     declare_sim = DeclareLaunchArgument('use_sim_time', default_value='true')
     declare_params = DeclareLaunchArgument(
@@ -27,9 +27,9 @@ def generate_launch_description():
     declare_map = DeclareLaunchArgument('map', default_value='')
     declare_slam = DeclareLaunchArgument('slam', default_value='False')
     declare_publish_initial_pose = DeclareLaunchArgument('publish_initial_pose', default_value='False')
-    declare_initial_x = DeclareLaunchArgument('initial_pose_x', default_value='-5.0')
+    declare_initial_x = DeclareLaunchArgument('initial_pose_x', default_value='0.0')
     declare_initial_y = DeclareLaunchArgument('initial_pose_y', default_value='0.0')
-    declare_initial_yaw = DeclareLaunchArgument('initial_pose_yaw', default_value='0.0')
+    # declare_initial_yaw = DeclareLaunchArgument('initial_pose_yaw', default_value='0.0')
 
     pkg_plan = get_package_share_directory('tennisbuddy_planning')
     nav_frontend = IncludeLaunchDescription(
@@ -70,7 +70,7 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 'x': initial_x,
                 'y': initial_y,
-                'yaw': initial_yaw,
+                 #'yaw': initial_yaw,
                 'frame_id': 'map',
                 'publish_delay': 1.0,
             }
@@ -85,7 +85,7 @@ def generate_launch_description():
         declare_publish_initial_pose, 
         declare_initial_x, 
         declare_initial_y, 
-        declare_initial_yaw,
+        # declare_initial_yaw,
         nav_frontend,
         initial_pose_node,
         goal_pusher,

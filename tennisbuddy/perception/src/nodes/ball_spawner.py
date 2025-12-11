@@ -48,6 +48,10 @@ class BallSpawnerRosGz(Node):
         self.declare_parameter('color', [1.0, 1.0, 0.0])
         self.declare_parameter('allow_renaming', False)
         self.declare_parameter('spawned_topic', '/ball_spawned_truth')
+        # Coordinate offset: nav_coord = map_coord + offset
+        # If robot is at map(-5,0) but nav thinks it's at (0,0), offset should be (5,0)
+        self.declare_parameter('nav_offset_x', 0.0)
+        self.declare_parameter('nav_offset_y', 0.0)
 
         self.world = self.get_parameter('world').get_parameter_value().string_value
         self.count = int(self.get_parameter('count').value)
@@ -64,6 +68,12 @@ class BallSpawnerRosGz(Node):
         self.r, self.g, self.b = [float(c) for c in color]
         self.allow_renaming = bool(self.get_parameter('allow_renaming').value)
         self.spawned_topic = self.get_parameter('spawned_topic').get_parameter_value().string_value
+        self.nav_offset_x = float(self.get_parameter('nav_offset_x').value)
+        self.nav_offset_y = float(self.get_parameter('nav_offset_y').value)
+
+        if self.nav_offset_x != 0.0 or self.nav_offset_y != 0.0:
+            self.get_logger().info(
+                f'[spawner] Using nav coordinate offset: ({self.nav_offset_x:.2f}, {self.nav_offset_y:.2f})')
 
         if self.seed > 0:
             random.seed(self.seed)
@@ -105,13 +115,18 @@ class BallSpawnerRosGz(Node):
             res = future.result()
             if res and res.success:
                 successes += 1
-                self.get_logger().info(f'[spawner] spawned {name} at ({x:.2f},{y:.2f})')
+                self.get_logger().info(f'[spawner] spawned {name} at map({x:.2f},{y:.2f})')
                 pose = Pose()
-                pose.position.x = x
-                pose.position.y = y
+                # Apply offset to convert from map coordinates to nav coordinates
+                # Gazebo spawns at map coordinates, but we publish nav coordinates
+                pose.position.x = x + self.nav_offset_x
+                pose.position.y = y + self.nav_offset_y
                 pose.position.z = 0.0
                 pose.orientation.w = 1.0
                 poses.poses.append(pose)
+                if self.nav_offset_x != 0.0 or self.nav_offset_y != 0.0:
+                    self.get_logger().info(
+                        f'[spawner]   -> published as nav({pose.position.x:.2f},{pose.position.y:.2f})')
             else:
                 self.get_logger().warn(f'[spawner] FAILED: {name}')
 
