@@ -3,7 +3,7 @@ from pathlib import Path
 
 ros_pkg_name = 'tennisbuddy_perception'
 py_pkg_root = 'src'
-py_pkg_name = 'perception'
+py_pkg_name = 'tennisbuddy_perception'
 
 Path('resource').mkdir(exist_ok=True)
 Path(f'resource/{ros_pkg_name}').touch(exist_ok=True)
@@ -27,12 +27,12 @@ setup(
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'ball_spawner = perception.nodes.ball_spawner:main',
-            'ball_groundtruth = perception.nodes.ball_groundtruth:main',
-            'mock_spawn_service = perception.nodes.mock_spawn_service:main',
-            'ball_detection_bridge = perception.nodes.ball_detection_bridge:main',
-            'detect_receiver = perception.nodes.detect_receiver:main',
-            'yolo_realsense_detector = perception.nodes.yolo_realsense_detector:main',
+            'ball_spawner = tennisbuddy_perception.nodes.ball_spawner:main',
+            'ball_groundtruth = tennisbuddy_perception.nodes.ball_groundtruth:main',
+            'mock_spawn_service = tennisbuddy_perception.nodes.mock_spawn_service:main',
+            'ball_detection_bridge = tennisbuddy_perception.nodes.ball_detection_bridge:main',
+            'detect_receiver = tennisbuddy_perception.nodes.detect_receiver:main',
+            'yolo_realsense_detector = tennisbuddy_perception.nodes.yolo_realsense_detector:main',
         ],
     },
 )

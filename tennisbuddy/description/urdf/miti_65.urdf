@@ -14,8 +14,8 @@
     <xacro:include filename="$(find tennisbuddy_description)/urdf/accessories/rover_dev_payload.urdf" />
     <xacro:include filename="$(find tennisbuddy_description)/urdf/accessories/rplidar_s2.urdf" />
     <xacro:include filename="$(find tennisbuddy_description)/urdf/accessories/imu.urdf" />
+    <xacro:include filename="$(find tennisbuddy_description)/urdf/accessories/box.urdf" />
     <xacro:include filename="$(find tennisbuddy_description)/urdf/accessories/realsense_camera.urdf" />
-
     <!-- Robot Description -->
     <link name="base_link" />
     <link name="chassis_link">
@@ -163,7 +163,7 @@
     </joint>
 
     <gazebo>
-        <plugin name="ignition::gazebo::systems::DiffDrive" filename="ignition-gazebo-diff-drive-system">
+        <plugin name="ignition::gazebo::systems::DiffDrive" filename="ignition-gazebo-diff-drive-system"> 
             <num_wheel_pairs>2</num_wheel_pairs>
             <!-- Wheel Information -->
             <left_joint>rl_wheel_to_chassis</left_joint>
@@ -179,7 +179,7 @@
             <max_angular_acceleration>4</max_angular_acceleration>
             <min_angular_acceleration>-4</min_angular_acceleration>
 
-
+            
             <!-- Output -->
             <frame_id>odom</frame_id>
             <child_frame_id>base_link</child_frame_id>

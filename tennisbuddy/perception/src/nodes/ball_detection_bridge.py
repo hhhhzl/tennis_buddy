@@ -14,7 +14,7 @@ class BallDetectionBridge(Node):
     def __init__(self):
         super().__init__('ball_detection_bridge')
         
-        self.declare_parameter('detection_timeout', 0.5)  # seconds - max age of detection
+        self.declare_parameter('detection_timeout', 3)  # seconds - max age of detection
         self.declare_parameter('time_sync_tolerance', 0.1)  # max time difference between bbox/conf/depth
         self.declare_parameter('bbox_topic', '/detections/bboxes')
         self.declare_parameter('conf_topic', '/detections/confidences')
@@ -23,7 +23,7 @@ class BallDetectionBridge(Node):
         self.declare_parameter('output_topic', '/ball_positions')
         self.declare_parameter('target_frame', 'map')
         self.declare_parameter('camera_frame', 'camera_depth_optical_frame')
-        self.declare_parameter('min_confidence', 0.25)
+        self.declare_parameter('min_confidence', 0.7)
         self.declare_parameter('max_depth', 5.0)  # max detection distance (meter)
         
         # subscribe
@@ -79,6 +79,12 @@ class BallDetectionBridge(Node):
         self.min_conf = float(self.get_parameter('min_confidence').value)
         self.max_depth = float(self.get_parameter('max_depth').value)
         
+        # Fallback frames to try if target_frame doesn't exist
+        self.fallback_frames = ['odom', 'base_link']
+        self.actual_target_frame = None  # Will be determined at runtime (cached)
+        self._target_frame_check_time = None  # Track when we last checked
+        self._target_frame_check_interval = 5.0  # Re-check every 5 seconds
+        
         self.get_logger().info(
             f'[ball_detection_bridge] Initialized. '
             f'Converting from {self.camera_frame} to {self.target_frame}, '
@@ -123,6 +129,61 @@ class BallDetectionBridge(Node):
         K = msg.k
         self.last_K = (float(K[0]), float(K[4]), float(K[2]), float(K[5]))  # fx, fy, cx, cy
     
+    def _get_available_target_frame(self, force_check=False):
+        """Check which target frame is available in TF tree, with fallbacks.
+        
+        Caches the result and only re-checks periodically or when forced.
+        """
+        now = self.get_clock().now()
+        
+        # Use cached result if available and not expired
+        if (self.actual_target_frame is not None and 
+            self._target_frame_check_time is not None and
+            not force_check):
+            elapsed = (now - self._target_frame_check_time).nanoseconds / 1e9
+            if elapsed < self._target_frame_check_interval:
+                return self.actual_target_frame
+        
+        # Try the configured target_frame first
+        frames_to_try = [self.target_frame] + self.fallback_frames
+        
+        for frame in frames_to_try:
+            try:
+                # Check if we can transform from camera_frame to this frame
+                # Use a very short timeout just to check existence
+                test_pose = PoseStamped()
+                test_pose.header.frame_id = self.camera_frame
+                test_pose.header.stamp = now.to_msg()
+                test_pose.pose.orientation.w = 1.0
+                
+                # Try to get transform (this will fail if frame doesn't exist)
+                _ = self.tf_buffer.transform(
+                    test_pose,
+                    frame,
+                    timeout=rclpy.duration.Duration(seconds=0.1)
+                )
+                # If we get here, the frame exists and transform is possible
+                if frame != self.target_frame and self.actual_target_frame != frame:
+                    self.get_logger().info(
+                        f"Target frame '{self.target_frame}' not available, "
+                        f"using fallback frame '{frame}'"
+                    )
+                self.actual_target_frame = frame
+                self._target_frame_check_time = now
+                return frame
+            except (tf2_ros.TransformException, LookupError):
+                continue
+        
+        # If none work, return the original target_frame anyway (will show error)
+        if self.actual_target_frame != self.target_frame:
+            self.get_logger().warn(
+                f"Previously available frame '{self.actual_target_frame}' no longer available. "
+                f"Trying '{self.target_frame}' (may fail)."
+            )
+        self.actual_target_frame = self.target_frame
+        self._target_frame_check_time = now
+        return self.target_frame
+    
     def _median_depth(self, depth_img, x, y, win=5):
         h, w = depth_img.shape[:2]
         x1 = max(0, x - win // 2)
@@ -158,8 +219,10 @@ class BallDetectionBridge(Node):
         
         if bbox_age > self.detection_timeout or conf_age > self.detection_timeout or depth_age > self.detection_timeout:
             # Publish empty to clear old positions
+            # Use actual available target frame
+            actual_target = self._get_available_target_frame()
             pose_array = PoseArray()
-            pose_array.header.frame_id = self.target_frame
+            pose_array.header.frame_id = actual_target
             pose_array.header.stamp = now.to_msg()
             self.pub_balls.publish(pose_array)
             return
@@ -221,16 +284,21 @@ class BallDetectionBridge(Node):
             ball_poses_camera.append(pose_camera)
         
         if not ball_poses_camera:
+            # Use actual available target frame
+            actual_target = self._get_available_target_frame()
             pose_array = PoseArray()
-            pose_array.header.frame_id = self.target_frame
+            pose_array.header.frame_id = actual_target
             pose_array.header.stamp = now.to_msg()
             self.pub_balls.publish(pose_array)
             return
         
-        # Transform to map frame using depth image timestamp
+        # Determine which target frame is actually available
+        actual_target = self._get_available_target_frame()
+        
+        # Transform to target frame using depth image timestamp
         try:
             pose_array = PoseArray()
-            pose_array.header.frame_id = self.target_frame
+            pose_array.header.frame_id = actual_target
             pose_array.header.stamp = now.to_msg()
             
             for pose_camera in ball_poses_camera:
@@ -245,7 +313,7 @@ class BallDetectionBridge(Node):
                     # Try direct transform first
                     pose_transformed = self.tf_buffer.transform(
                         pose_stamped,
-                        self.target_frame,
+                        actual_target,
                         timeout=rclpy.duration.Duration(seconds=2.0)  # Increased timeout for Nav2 resize
                     )
                     pose_array.poses.append(pose_transformed.pose)
@@ -259,12 +327,15 @@ class BallDetectionBridge(Node):
                             'base_link',
                             timeout=rclpy.duration.Duration(seconds=2.0)
                         )
-                        # Step 2: base_link -> map
-                        pose_transformed = self.tf_buffer.transform(
-                            pose_base,
-                            self.target_frame,
-                            timeout=rclpy.duration.Duration(seconds=2.0)
-                        )
+                        # Step 2: base_link -> target
+                        if actual_target != 'base_link':
+                            pose_transformed = self.tf_buffer.transform(
+                                pose_base,
+                                actual_target,
+                                timeout=rclpy.duration.Duration(seconds=2.0)
+                            )
+                        else:
+                            pose_transformed = pose_base
                         pose_array.poses.append(pose_transformed.pose)
                         self.get_logger().debug("Used two-step transform via base_link")
                     except tf2_ros.TransformException as e2:
@@ -273,7 +344,7 @@ class BallDetectionBridge(Node):
                             pose_stamped.header.stamp = rclpy.time.Time().to_msg()
                             pose_transformed = self.tf_buffer.transform(
                                 pose_stamped,
-                                self.target_frame,
+                                actual_target,
                                 timeout=rclpy.duration.Duration(seconds=2.0)
                             )
                             pose_array.poses.append(pose_transformed.pose)
@@ -286,13 +357,22 @@ class BallDetectionBridge(Node):
                                     f"TF tree disconnected - camera frame may not be published. "
                                     f"Ensure robot_state_publisher is running. Error: {e3}"
                                 )
+                            elif "does not exist" in error_str:
+                                # Frame doesn't exist - force re-check on next iteration
+                                self.get_logger().warn(
+                                    f"Target frame '{actual_target}' no longer available. "
+                                    f"Will re-check available frames. Error: {e3}"
+                                )
+                                # Clear cache to force re-check
+                                self.actual_target_frame = None
+                                self._target_frame_check_time = None
                             else:
                                 self.get_logger().warn(f"Transform failed after all retries: {e3}")
                             continue
             
             if pose_array.poses:
                 self.pub_balls.publish(pose_array)
-                self.get_logger().debug(
+                self.get_logger().info(
                     f"Published {len(pose_array.poses)} balls (detection time: {depth_stamp.seconds_nanoseconds()})"
                 )
                 

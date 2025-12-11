@@ -23,12 +23,12 @@ def yaw_to_quat(yaw: float) -> Quaternion:
 class Nav2GoalPusher(Node):
     def __init__(self):
         super().__init__('nav2_goal_pusher')
-        self.declare_parameter('pickup_distance', 0.35)
+        self.declare_parameter('pickup_distance', 0.05)
         self.declare_parameter('frame_id', 'map')
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('queue_max_targets', 15)
         self.declare_parameter('min_clear_distance_multiplier', 1.2)
-        self.declare_parameter('visit_distance_threshold', 0.25)
+        self.declare_parameter('visit_distance_threshold', 0.4)
         self.pickup_d = float(self.get_parameter('pickup_distance').value)
         self.frame_id = self.get_parameter('frame_id').value
         self.queue_max_targets = int(self.get_parameter('queue_max_targets').value)
@@ -61,6 +61,7 @@ class Nav2GoalPusher(Node):
 
     def on_odom(self, msg: Odometry):
         self.robot_xy = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y], dtype=float)
+        self.get_logger().info(f'[nav2_goal_pusher] Updated robot position: ({self.robot_xy[0]:.2f}, {self.robot_xy[1]:.2f})')
 
     def on_balls(self, msg: PoseArray):
         arr = []
@@ -122,9 +123,15 @@ class Nav2GoalPusher(Node):
 
     def tick(self):
         if self.sending:
+            self.get_logger().warn('[nav2_goal_pusher] BLOCKED: Currently sending goal, skipping tick')
             return
-        if not self.work_queue or self.robot_xy is None:
+        if not self.work_queue:
+            self.get_logger().warn('[nav2_goal_pusher] BLOCKED: Work queue is empty')
             return
+        if self.robot_xy is None:
+            self.get_logger().warn('[nav2_goal_pusher] BLOCKED: Robot position unknown in tick() - waiting for odom')
+            return
+        
         idx = self.work_queue.pop(0)
         ball = self.targets[idx]
         gx, gy, yaw = self.compute_pickup_pose(self.robot_xy, ball)
@@ -162,8 +169,13 @@ class Nav2GoalPusher(Node):
         self.get_logger().info(f'[nav2_goal_pusher] Goal finished with result: {result}')
         if self.current_target is not None and self.robot_xy is not None:
             dist = np.linalg.norm(self.current_target - self.robot_xy)
+            self.get_logger().info(f'[nav2_goal_pusher] Distance to target: {dist:.3f}m, threshold: {max(self.visit_threshold, self.pickup_d * 0.8):.3f}m')
             if dist <= max(self.visit_threshold, self.pickup_d * 0.8):
                 self._mark_target_visited(self.current_target)
+            else:
+                self.get_logger().warn(f'[nav2_goal_pusher] Too far from target ({dist:.3f}m), not marking as visited')
+        else:
+            self.get_logger().warn(f'[nav2_goal_pusher] Cannot check distance: current_target={self.current_target}, robot_xy={self.robot_xy}')
         self.current_target = None
         self.sending = False
 

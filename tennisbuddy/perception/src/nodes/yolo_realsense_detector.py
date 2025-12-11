@@ -8,9 +8,9 @@ from typing import Optional, Tuple, List
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
-from std_msgs.msg import Float32MultiArray, Int32MultiArray
+from std_msgs.msg import Float32MultiArray, Int32MultiArray, Bool
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 from ament_index_python.packages import get_package_share_directory
@@ -20,18 +20,6 @@ from ultralytics import YOLO
 
 
 def _median_depth(depth_m: np.ndarray, cx: int, cy: int, k: int = 5) -> float:
-    """
-    Same logic as median_depth() in detectobj.py:
-
-        h, w = depth_m.shape
-        x0 = max(cx - k // 2, 0)
-        y0 = max(cy - k // 2, 0)
-        x1 = min(cx + k // 2 + 1, w)
-        y1 = min(cy + k // 2 + 1, h)
-        vals = depth_m[y0:y1, x0:x1]
-        vals = vals[vals > 0]
-        return float(np.median(vals)) if vals.size else float("nan")
-    """
     h, w = depth_m.shape
 
     x0 = max(cx - k // 2, 0)
@@ -61,9 +49,9 @@ class YoloImageDetector(Node):
         self.declare_parameter("imgsz", 640)
 
         # Default to typical realsense2_camera topics when align_depth:=true
-        self.declare_parameter("color_topic", "/camera/color/image_raw")
-        self.declare_parameter("depth_topic", "/camera/aligned_depth_to_color/image_raw")
-        self.declare_parameter("camera_info_topic", "/camera/color/camera_info")
+        self.declare_parameter("color_topic", "/camera/camera/color/image_raw")
+        self.declare_parameter("depth_topic", "/camera/camera/aligned_depth_to_color/image_raw")
+        self.declare_parameter("camera_info_topic", "/camera/camera/color/camera_info")
 
         # For RealSense ROS depth: 16UC1 in mm → scale=0.001 to get meters
         self.declare_parameter("depth_scale", 0.001)
@@ -95,6 +83,15 @@ class YoloImageDetector(Node):
             self.get_parameter("device").get_parameter_value().string_value
         )
         self.use_half: bool = bool(self.get_parameter("half").value)
+
+        # ---------- Ready / status publisher (latched) ----------
+        ready_qos = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,  # latch last msg
+        )
+        self.ready_pub = self.create_publisher(Bool, "yolo_ready", ready_qos)
 
         # ---------- Publishers ----------
         self.pub_conf = self.create_publisher(
@@ -155,12 +152,34 @@ class YoloImageDetector(Node):
             f"- Torch CUDA available: {torch_cuda}"
         )
 
+        # Set thread configuration early (before any model loading)
+        try:
+            torch.set_num_threads(1)
+            torch.set_num_interop_threads(1)
+        except Exception:
+            # Thread settings may fail if already set, ignore
+            pass
+
         try:
             if torch_cuda:
-                torch.backends.cudnn.benchmark = True
+                # Completely disable cuDNN to avoid "FIND/GET engine" errors on Jetson
+                # cuDNN v8/v9 compatibility issues cause CUDNN_STATUS_EXECUTION_FAILED
+                # PyTorch will fall back to other CUDA backends (e.g., CUBLAS)
+                torch.backends.cudnn.enabled = False
+                self.get_logger().info(
+                    "cuDNN disabled - using PyTorch default CUDA backend "
+                    "(may be slower but more stable on Jetson)"
+                )
                 torch.set_float32_matmul_precision("high")
         except Exception:
             pass
+
+        # Disable TensorRT and other optimizations to avoid "FIND engine" errors on Jetson
+        os.environ.setdefault("YOLO_TENSORRT", "False")
+        os.environ.setdefault("YOLO_ORT", "False")  # Disable ONNX Runtime
+        os.environ.setdefault("YOLO_COREML", "False")  # Disable CoreML
+        # Force PyTorch backend
+        os.environ.setdefault("YOLO_ENGINE", "torch")
 
         self._init_model_sync()
         self.create_timer(0.05, self._process_frame)
@@ -182,12 +201,6 @@ class YoloImageDetector(Node):
             self.get_logger().error(f"cv_bridge color conversion failed: {e}")
 
     def _on_depth(self, msg: Image) -> None:
-        """
-        Equivalent to:
-
-            depth_u16 = np.asanyarray(depth_frame.get_data())   # from aligned depth
-            depth_m   = depth_u16.astype(np.float32) * depth_scale
-        """
         try:
             depth_raw = self.bridge.imgmsg_to_cv2(
                 msg, desired_encoding="passthrough"
@@ -229,44 +242,98 @@ class YoloImageDetector(Node):
         except Exception as e:
             self.get_logger().error(f"CameraInfo parse failed: {e}")
 
+    # ---------- Ready helper ----------
+
+    def _publish_ready(self) -> None:
+        msg = Bool()
+        msg.data = True
+        self.ready_pub.publish(msg)
+        self.get_logger().info("YOLO model initialized; published yolo_ready = True")
+
     # ---------- Sync model loading (GPU → CPU fallback) ----------
 
     def _init_model_sync(self) -> None:
-        torch_cuda = torch.cuda.is_available()
-
-        if self.use_gpu and torch_cuda:
+        if torch.cuda.is_available():
+            # Try with half precision first
             try:
-                self._load_and_warmup(device=self.device_req, half=self.use_half)
-                self.active_device = self.device_req
-                self.active_half = self.use_half
-                self.get_logger().info(
-                    f"YOLO ready on {self.active_device} (half={self.active_half})"
-                )
+                self._load_and_warmup(device="cuda:0", half=True)
+                self.active_device = "cuda:0"
+                self.active_half = True
+                self.get_logger().info("YOLO ready on CUDA (half precision)")
+                self._publish_ready()
                 return
             except Exception as e:
-                self.get_logger().error(
-                    "YOLO CUDA load/warmup failed; falling back to CPU:\n"
-                    + "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                error_str = str(e)
+                self.get_logger().warning(
+                    f"[YOLO] CUDA half precision failed: {error_str[:200]}"
                 )
-
+                # If FIND engine error, try without half precision
+                if "FIND" in error_str or "engine" in error_str.lower():
+                    self.get_logger().info(
+                        "[YOLO] Retrying CUDA with float32 (no half precision)..."
+                    )
+                    try:
+                        self._load_and_warmup(device="cuda:0", half=False)
+                        self.active_device = "cuda:0"
+                        self.active_half = False
+                        self.get_logger().info("YOLO ready on CUDA (float32)")
+                        self._publish_ready()
+                        return
+                    except Exception as e2:
+                        self.get_logger().error(
+                            "[YOLO] CUDA float32 also failed, falling back to CPU:\n"
+                            + "".join(traceback.format_exception(type(e2), e2, e2.__traceback__))
+                        )
+                else:
+                    self.get_logger().error(
+                        "[YOLO] CUDA load/warmup failed, falling back to CPU:\n"
+                        + "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                    )
         try:
             self._load_and_warmup(device="cpu", half=False)
             self.active_device = "cpu"
             self.active_half = False
-            self.get_logger().info("YOLO ready on CPU")
+            self.get_logger().info("YOLO ready on CPU (float32)")
+            self._publish_ready()
         except Exception as e:
             self.get_logger().error(
-                "YOLO CPU load/warmup failed:\n"
+                "[YOLO] CPU load/warmup failed:\n"
                 + "".join(traceback.format_exception(type(e), e, e.__traceback__))
             )
 
     def _load_and_warmup(self, device: str, half: bool) -> None:
-        torch.set_num_threads(1)
-        torch.set_num_interop_threads(1)
+        # Thread settings should be set before any torch operations
+        # Skip if already set or if parallel work has started
+        try:
+            torch.set_num_threads(1)
+        except RuntimeError:
+            # Threads already set or parallel work started, skip
+            pass
+        
+        try:
+            torch.set_num_interop_threads(1)
+        except RuntimeError:
+            # Interop threads already set, skip
+            pass
 
         self.get_logger().info(f"Loading YOLO model ({device}, half={half})…")
 
-        mdl = YOLO(self.model_path, task="detect")
+        # Load model with explicit backend settings to avoid engine errors
+        # The "FIND engine" error typically occurs when ultralytics tries to use
+        # TensorRT or other optimized backends that aren't properly configured
+        try:
+            mdl = YOLO(self.model_path, task="detect")
+        except Exception as e:
+            if "FIND" in str(e) or "engine" in str(e).lower():
+                self.get_logger().warning(
+                    f"Model loading with default backend failed: {e}\n"
+                    "Trying with explicit PyTorch backend..."
+                )
+                # Force PyTorch backend
+                os.environ["YOLO_ENGINE"] = "torch"
+                mdl = YOLO(self.model_path, task="detect")
+            else:
+                raise
 
         dummy = np.zeros((self.imgsz, self.imgsz, 3), dtype=np.uint8)
         _ = mdl.predict(
@@ -321,40 +388,29 @@ class YoloImageDetector(Node):
             bboxes_flat.extend([int(x1), int(y1), int(x2), int(y2)])
             confs.append(float(c))
 
-            depth_str = "n/a"
-            coord_str = ""
-
             if depth_img is None:
                 self.get_logger().warning("No depth frame available.")
                 z_single = float("nan")
                 z_list.append(z_single)
                 continue
 
-            # Center of bbox
             cx_b = (x1 + x2) // 2
             cy_b = (y1 + y2) // 2
             cboxes_flat.extend([int(cx_b), int(cy_b)])
 
-            # Median depth in meters around center, same as detectobj.py
             z_single = _median_depth(depth_img, cx_b, cy_b, k=5)
             z_list.append(z_single)
 
-            self.get_logger().info(
-                f"Depth at ({cx_b},{cy_b}) = {z_single:.3f} m"
-            )
-
-            # Optional 3D projection if intrinsics are available
             if K is not None and np.isfinite(z_single) and z_single > 0.0:
                 fx, fy, cx, cy = K
                 X = (cx_b - cx) * z_single / fx
                 Y = (cy_b - cy) * z_single / fy
-                depth_str = f"{z_single:.3f} m"
-                coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z_single:.3f}) m"
-
-            self.get_logger().info(
-                f"Detection {idx}: conf={c:.3f}, "
-                f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
-            )
+                # depth_str = f"{z_single:.3f} m"
+                # coord_str = f", 3D≈({X:.3f}, {Y:.3f}, {z_single:.3f}) m"
+                # self.get_logger().info(
+                #     f"Detection {idx}: conf={c:.3f}, "
+                #     f"bbox=({x1},{y1},{x2},{y2}), depth={depth_str}{coord_str}"
+                # )
 
         try:
             if confs:

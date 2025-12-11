@@ -1,7 +1,7 @@
 # RPLidar S2 Settings
 rplidar:
   ros__parameters:
-    active: false
+    active: true
     serial_port: "/dev/rplidar"
     serial_baudrate: 1000000
     frame_id: "lidar_link"
@@ -13,7 +13,7 @@ rplidar:
 # BNO055 IMU Settings
 bno055:
   ros__parameters:
-    active: false
+    active: true
     ros_topic_prefix: ""
     connection_type: "uart"
     uart_port: "/dev/bno055"
@@ -42,7 +42,7 @@ bno055:
 # Realsense D435i Settings
 realsense:
   ros__parameters:
-    active: false
+    active: true
     accel_fps: 100
     accel_info_qos: DEFAULT
     accel_qos: SENSOR_DATA
