@@ -192,7 +192,7 @@ def generate_launch_description():
             resolved_map_path = map_file_value
         else:
             resolved_map_path = os.path.join(
-                get_package_share_directory('roverrobotics_driver'),
+                get_package_share_directory('tennisbuddy_ros2_control'),
                 'maps',
                 map_file_value
             )

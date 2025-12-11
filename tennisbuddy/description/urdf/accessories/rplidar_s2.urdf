@@ -18,10 +18,10 @@
 
     </link>
 
-    <joint name="lidar_to_payload" type="fixed">
-        <parent link="payload_link"/>
+    <joint name="lidar_to_chassis" type="fixed">
+        <parent link="chassis_link"/>
         <child link="lidar_link"/>
-        <origin xyz="0.174 0 0.10" rpy="0 0 3.1415"/>
+        <origin xyz="0.0 0 0.18" rpy="0 0 3.1415"/>
     </joint>
 
     <gazebo reference="lidar_link">

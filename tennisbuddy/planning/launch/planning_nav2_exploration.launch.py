@@ -101,6 +101,6 @@ def generate_launch_description():
         declare_initial_yaw,
         nav_frontend,
         initial_pose_node,
-        # waypoint_manager,
-        # ball_collector,
+        waypoint_manager,
+        ball_collector,
     ])

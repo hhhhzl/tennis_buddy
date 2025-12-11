@@ -28,10 +28,28 @@ colcon build
 source install/setup.sh
 ```
 
-## Run
+## Running
+
+### Run the robot
 ```commandline
 ros2 launch tennisbuddy_ros2_control miti_65.launch.py
 ```
+#### Running the New Map with Slam
+```
+ros2 launch tennisbuddy_perception slam_launch.py
+```
+#### Drive the Robot in the New Map
+```
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+#### Save yaml and pgm
+```
+ros2 run nav2_map_server map_saver_cli -f ~/final
+```
+#### Same posegraph
+ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph “{filename: ‘/home/$USER/final.posegraph’, allow_header_reset: false}”
+
+![Map Saved](./assets/singleton_room.png)
 
 ## Simulation
 
@@ -60,31 +78,11 @@ ros2 launch tennisbuddy_simulation miti_65_sim.launch.py simulator:=isaac_sim wo
 
 **Note**: Both simulators use the same ROS2 interface and topics, ensuring full compatibility. See [tennisbuddy/simulation/README.md](tennisbuddy/simulation/README.md) for details.
 
-
-## Testing
+### Simulation Testing
 ```
 ros2 launch tennisbuddy_gazebo miti_65_gazebo.launch.py world:=court.sdf world_name:=tennis_world use_sim_time:=true
 ros2 launch tennisbuddy_perception ball_spawner.launch.py world:=tennis_world count:=15
 ros2 launch tennisbuddy_perception perception_gazebo_gt.launch.py world:=tennis_world
 ros2 launch tennisbuddy_planning navigation_launch.py use_sim_time:=true slam:=true map_file_name:=/home/autobots/tennis_buddy/tennisbuddy/ros2_control/maps/court_mapv2
-ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py use_sim_time:=true
-```
-
-# 
-```
-ros2 run tennisbuddy_planning nav2_goal_pusher \
-    --ros-args \
-    -p use_sim_time:=true \
-    -p odom_topic:=/odometry/filtered \
-    -p frame_id:=map \
-    -p pickup_distance:=0.35
-```
-
-```
-ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py \
-  use_sim_time:=true \
-  publish_initial_pose:=True \
-  initial_pose_x:=-5.0 \
-  initial_pose_y:=0.0 \
-  initial_pose_yaw:=0.0
+ros2 launch tennisbuddy_planning planning_nav2_goal.launch.py use_sim_time:=true publish_initial_pose:=true
 ```

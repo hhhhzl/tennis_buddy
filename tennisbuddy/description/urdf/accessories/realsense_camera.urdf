@@ -20,8 +20,8 @@
         </inertial>
     </link>
 
-    <joint name="camera_to_payload" type="fixed">
-        <parent link="base_link"/>
+    <joint name="camera_to_chassis" type="fixed">
+        <parent link="chassis_link"/>
         <child link="camera_link"/>
         <origin xyz="0.25 0.0 0.15" rpy="0 0 0"/>
     </joint>
