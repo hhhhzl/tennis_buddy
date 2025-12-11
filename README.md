@@ -46,8 +46,10 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 ros2 run nav2_map_server map_saver_cli -f ~/final
 ```
-#### Same posegraph
+#### Save posegraph
+```
 ros2 service call /slam_toolbox/serialize_map slam_toolbox/srv/SerializePoseGraph “{filename: ‘/home/$USER/final.posegraph’, allow_header_reset: false}”
+```
 
 ![Map Saved](./assets/singleton_room.png)
 
